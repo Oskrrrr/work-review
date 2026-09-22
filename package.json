@@ -11,8 +11,8 @@
     "test": "vitest run",
     "preview": "vite preview --host 127.0.0.1",
     "client:start": "npm run build && electron .",
-    "client:package": "npm run build && electron-builder --win nsis",
-    "client:dir": "npm run build && electron-builder --win --dir"
+    "client:package": "node scripts/fetch-kdocs-cli.cjs && npm run build && electron-builder --win nsis",
+    "client:dir": "node scripts/fetch-kdocs-cli.cjs && npm run build && electron-builder --win --dir"
   },
   "dependencies": {
     "fflate": "^0.8.2",
@@ -44,6 +44,7 @@
     "productName": "工作脉络",
     "asar": true,
     "files": ["dist/**/*", "electron/**/*", "package.json"],
+    "extraResources": [{ "from": "vendor/kdocs-cli", "to": "vendor/kdocs-cli", "filter": ["**/*"] }],
     "directories": { "output": "release" },
     "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "artifactName": "工作脉络-${version}-Setup.${ext}" },
     "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true }
