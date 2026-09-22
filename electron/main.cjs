@@ -15,6 +15,7 @@ function findKdocsCli() {
     process.env.KDOCS_CLI_PATH,
     path.join(process.env.LOCALAPPDATA || '', 'kdocs-cli', 'kdocs-cli.exe'),
     path.join(app.getPath('userData'), 'kdocs-cli.exe'),
+    path.join(process.resourcesPath || '', 'vendor', 'kdocs-cli', 'kdocs-cli.exe'),
     path.join(__dirname, '..', 'vendor', 'kdocs-cli', 'kdocs-cli.exe')
   ].filter(Boolean);
   return candidates.find(candidate => fs.existsSync(candidate)) || null;

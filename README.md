@@ -59,7 +59,9 @@
 1. 在「数据与同步」中登录个人 WPS，搜索并选择工作记录 Excel。
 2. 跳过 WPS 登录，直接导入本地 Excel。
 
-个人 WPS 模式需要官方组件 `kdocs-cli`。安装说明见官方项目：[kdocs-app/kdocs-skill](https://github.com/kdocs-app/kdocs-skill)。
+Windows 安装包会在构建时从官方来源获取并内置固定版本的 `kdocs-cli`，普通用户不需要再手动安装。开发者从源码打包时，`scripts/fetch-kdocs-cli.cjs` 会自动下载并校验组件。个人 WPS 登录仍由 `kdocs-cli` 的官方登录流程完成。组件来源和版本说明见 [docs/第三方组件.md](docs/第三方组件.md) 以及官方项目：[kdocs-app/kdocs-skill](https://github.com/kdocs-app/kdocs-skill)。
+
+如果所在网络无法下载官方组件，仍然可以跳过 WPS 登录，直接导入本地 Excel 工作簿。
 
 ### 从源码运行
 
@@ -89,7 +91,7 @@ pnpm run client:dir
 工作脉络的个人客户端默认采用本地优先设计：
 
 - 本地 Excel 解析后的记录、图片和人工配置保存在当前客户端的本地存储中。
-- 个人 WPS 登录由官方 `kdocs-cli` 处理，凭据保存在当前电脑的系统凭据中。
+- 个人 WPS 登录由安装包内的官方 `kdocs-cli` 处理，凭据保存在当前电脑的系统凭据中。
 - 个人 WPS 模式不需要本项目的 WPS App ID、App Key 或 CloudBase 云函数。
 - AI 年度报告素材在本地生成，不会自动发送给任何 AI 服务。
 - 本项目不内置维护者的 WPS 密钥，也不会把用户密钥写入源码。
