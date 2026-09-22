@@ -1,0 +1,6 @@
+allowBuilds:
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+overrides:
+  '@electron/get': 4.0.3
