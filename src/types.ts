@@ -32,6 +32,8 @@ export interface CaseItem {
 }
 
 export interface DatasetMeta {
+  /** Stable identifier for one imported workbook/year. */
+  datasetId?: string;
   sourceName: string;
   sheetName: string;
   year: number;

@@ -1,9 +1,9 @@
-import { CalendarDays, Clock3, Cloud, FileSpreadsheet, FolderKanban, LayoutDashboard, ListFilter, RefreshCw, Search, Settings, Tags, X, SlidersHorizontal, Link2 } from 'lucide-react';
+import { CalendarDays, Clock3, Cloud, Eye, EyeOff, FileSpreadsheet, FolderKanban, LayoutDashboard, ListFilter, RefreshCw, Search, Settings, Tags, X, SlidersHorizontal, Link2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ImportDialog } from './components/ImportDialog';
 import { FirstRunDialog } from './components/FirstRunDialog';
 import { acceptSuggestion, buildCaseSuggestions, renumberCases, type CaseSuggestion } from './lib/cases';
-import { clearLocalData, loadDataset, saveDataset, saveImages } from './lib/storage';
+import { clearLocalData, loadDataset, loadDatasets, saveDataset, saveImages } from './lib/storage';
 import { getCloudDataset, getCloudSettings, hasCloudApi, saveCloudCases, saveCloudSettings, WPS_AUTH_PENDING_KEY, type UserSettings, triggerCloudSync, downloadPersonalWpsFile, type PersonalWpsFile, loginPersonalWps } from './lib/api';
 import { demoDataset } from './demo';
 import type { WorkDataset } from './types';
@@ -69,6 +69,7 @@ function mergeLocalUserState(remote: WorkDataset, local?: WorkDataset, cloudSett
 
 function App() {
   const [dataset,setDataset] = useState<WorkDataset>(demoDataset);
+  const [datasets,setDatasets] = useState<WorkDataset[]>([]);
   const [view,setView] = useState<ViewName>('overview');
   const [selectedDate,setSelectedDate] = useState(newestDate(demoDataset));
   const [importOpen,setImportOpen] = useState(false);
@@ -78,6 +79,7 @@ function App() {
   const [imagePreview,setImagePreview] = useState<{url:string;title:string}>();
   const [toast,setToast] = useState('');
   const [rejectedSuggestions,setRejectedSuggestions] = useState<string[]>(() => JSON.parse(localStorage.getItem('rejected-suggestions') || '[]'));
+  const [hideContent, setHideContent] = useState(false);
   const toastTimer = useRef<number>();
 
   // 如果上一次授权过程中客户端被关闭，下一次启动时只清理 WPS 的
@@ -91,7 +93,8 @@ function App() {
 
   useEffect(() => { (async () => {
     const stored = await loadDataset();
-    if (stored) { const normalized = renumberCases(stored); setDataset(normalized); setSelectedDate(newestDate(normalized)); }
+    const all = await loadDatasets();
+    if (stored) { const normalized = renumberCases(stored); setDatasets(all); setDataset(normalized); setSelectedDate(newestDate(normalized)); }
     else if (!localStorage.getItem('work-review-onboarding-seen')) setFirstRunOpen(true);
     setHydrated(true);
   })(); }, []);
@@ -99,8 +102,14 @@ function App() {
   const suggestions = useMemo(() => buildCaseSuggestions(dataset.records,rejectedSuggestions,dataset.meta.associationExclusions ?? []),[dataset.records,rejectedSuggestions,dataset.meta.associationExclusions]);
 
   const notify = (message:string) => { setToast(message); window.clearTimeout(toastTimer.current); toastTimer.current=window.setTimeout(()=>setToast(''),2600); };
-  const applyDataset = (next:WorkDataset) => { const normalized = renumberCases(next); setDataset(normalized); void saveDataset(normalized); };
-  const handleImported = async (result:ImportResult) => { await saveImages(result.images); applyDataset(result.dataset); setSelectedDate(newestDate(result.dataset)); notify(`已导入 ${result.dataset.records.length} 条记录和 ${result.dataset.meta.imageCount} 个图片引用`); };
+  const datasetId = (item: WorkDataset) => item.meta.datasetId || `${item.meta.year}-${item.meta.sourceName}`;
+  const applyDataset = (next:WorkDataset) => {
+    const normalized = renumberCases(next);
+    setDataset(normalized);
+    setDatasets(current => [...current.filter(item => datasetId(item) !== datasetId(normalized)), normalized].sort((a, b) => b.meta.year - a.meta.year || b.meta.importedAt.localeCompare(a.meta.importedAt)));
+    void saveDataset(normalized);
+  };
+  const handleImported = async (result:ImportResult) => { await saveImages(result.images, datasetId(result.dataset)); applyDataset(result.dataset); setSelectedDate(newestDate(result.dataset)); notify(`已保存 ${result.dataset.meta.year} 年数据：${result.dataset.records.length} 条记录和 ${result.dataset.meta.imageCount} 个图片引用`); };
   const handlePersonalWpsImport = async (file: PersonalWpsFile) => {
     notify('正在下载个人 WPS 工作记录…');
     try {
@@ -122,7 +131,8 @@ function App() {
   const importConfig = async (file: File) => { try { const payload = JSON.parse(await file.text()) as { format?: string; settings?: Partial<UserSettings> }; const settings = payload.settings; if (payload.format !== 'work-review-settings' || !settings || !Array.isArray(settings.cases)) throw new Error('配置文件格式不正确'); const merged = renumberCases(applyCloudSettings(dataset, settings)); applyDataset(merged); notify(`已导入 ${merged.cases.length} 个事项配置`); } catch (error) { notify(error instanceof Error ? error.message : '配置文件读取失败'); } };
   const accept = (suggestion:CaseSuggestion) => { const next=acceptSuggestion(dataset,suggestion); applyDataset(next); notify(`已生成 ${next.cases.at(-1)?.id}`); };
   const reject = (suggestion:CaseSuggestion) => { const next=[...rejectedSuggestions,suggestion.id]; setRejectedSuggestions(next); localStorage.setItem('rejected-suggestions',JSON.stringify(next)); notify('已忽略这条关联建议'); };
-  const clear = async () => { if (!window.confirm('确定清除当前浏览器中的工作记录和图片吗？原始 Excel 不会受到影响。')) return; await clearLocalData(); setDataset(demoDataset); setSelectedDate(newestDate(demoDataset)); notify('本地数据已清除'); };
+  const clear = async () => { if (!window.confirm('确定清除当前浏览器中的全部年度工作记录和图片吗？原始 Excel 不会受到影响。')) return; await clearLocalData(); setDatasets([]); setDataset(demoDataset); setSelectedDate(newestDate(demoDataset)); notify('本地数据已清除'); };
+  const switchDataset = (id:string) => { const target = datasets.find(item => datasetId(item) === id); if (!target) return; setDataset(target); setSelectedDate(newestDate(target)); };
   const openImage = (url:string,title:string) => setImagePreview({url,title});
   const syncNow = async () => {
     if (dataset.meta.sourceMode === 'personal-wps') {
@@ -133,7 +143,7 @@ function App() {
     }
     if (dataset.meta.sourceMode !== 'wps' || !hasCloudApi()) { setImportOpen(true); return; }
     notify('正在从 WPS 同步…');
-    try { const result = await triggerCloudSync(); const remote = await getCloudDataset(); const local = await loadDataset(); const cloudSettings = await getCloudSettings(); const merged = renumberCases(mergeLocalUserState(remote, local, cloudSettings)); setDataset(merged); setSelectedDate(newestDate(merged)); void saveDataset(merged); await Promise.all([saveCloudCases(merged), saveCloudSettings(settingsFrom(merged))]); notify(`同步完成，读取 ${result.imported} 条记录`); }
+    try { const result = await triggerCloudSync(); const remote = await getCloudDataset(); const local = await loadDataset(); const cloudSettings = await getCloudSettings(); const merged = renumberCases(mergeLocalUserState(remote, local, cloudSettings)); applyDataset(merged); setSelectedDate(newestDate(merged)); await Promise.all([saveCloudCases(merged), saveCloudSettings(settingsFrom(merged))]); notify(`同步完成，读取 ${result.imported} 条记录`); }
     catch (reason) { notify(reason instanceof Error ? reason.message : '同步失败'); }
   };
   const searchMatchCount = search ? dataset.records.filter(record => [record.title,record.caseId,...record.steps.map(step=>step.text)].join(' ').toLowerCase().includes(search.toLowerCase())).length : 0;
@@ -145,10 +155,10 @@ function App() {
       <div className="source-card"><div className="source-title"><Cloud size={17}/><strong>{dataset.meta.sourceMode==='demo'?'等待连接':'数据源已连接'}</strong></div><p>{dataset.meta.sourceName}<br/>{dataset.meta.sourceMode==='demo'?'可先导入本地工作簿':`已导入 ${dataset.records.length} 条记录`}</p><button onClick={syncNow}><RefreshCw size={15}/><span>{dataset.meta.sourceMode==='personal-wps'?'同步个人 WPS':dataset.meta.sourceMode==='wps'?'立即同步':dataset.meta.sourceMode==='demo'?'连接数据源':'重新导入'}</span></button></div>
     </aside>
     <main>
-      <header className="topbar"><div><p>工作记录</p>{view==='overview'&&<h1>{dataset.meta.year} 年工作回顾</h1>}</div><div className="top-actions"><label className="search"><Search size={16}/><input aria-label="全局搜索" value={search} onChange={event=>setSearch(event.target.value)} onKeyDown={event=>{if(event.key==='Enter')setView('timeline')}} placeholder="搜索事项、跟进或编号"/>{search&&<small>{searchMatchCount}</small>}</label><button className="import-button" onClick={()=>setImportOpen(true)}><FileSpreadsheet size={17}/><span>导入工作簿</span></button><div className="avatar">我</div></div></header>
+      <header className="topbar"><div><p>工作记录</p>{view==='overview'&&<h1>{dataset.meta.year} 年工作回顾</h1>}</div><div className="top-actions">{datasets.length > 1 && <label className="dataset-switcher"><span>数据年度</span><select value={datasetId(dataset)} onChange={event => switchDataset(event.target.value)}>{datasets.map(item => <option key={datasetId(item)} value={datasetId(item)}>{item.meta.year} · {item.meta.sourceName}</option>)}</select></label>}<label className="search"><Search size={16}/><input aria-label="全局搜索" value={search} onChange={event=>setSearch(event.target.value)} onKeyDown={event=>{if(event.key==='Enter')setView('timeline')}} placeholder="搜索事项、跟进或编号"/>{search&&<small>{searchMatchCount}</small>}</label><button className={`privacy-toggle${hideContent ? ' active' : ''}`} onClick={() => setHideContent(value => !value)} title={hideContent ? '显示工作内容' : '隐藏工作内容'}>{hideContent ? <Eye size={16}/> : <EyeOff size={16}/>}<span>{hideContent ? '显示内容' : '隐藏内容'}</span></button><button className="import-button" onClick={()=>setImportOpen(true)}><FileSpreadsheet size={17}/><span>导入工作簿</span></button><div className="avatar">我</div></div></header>
       {dataset.meta.sourceMode==='demo'&&<div className="notice"><span>当前是示例数据。导入你的工作记录 Excel 后，会在当前浏览器中生成真实时间线和图片。</span><button onClick={()=>setImportOpen(true)}>现在导入</button></div>}
-      {view==='overview'&&<OverviewView dataset={dataset} selectedDate={selectedDate} onSelectDate={setSelectedDate} onOpenImage={openImage} onNavigate={name=>setView(name as ViewName)}/>} 
-      {view==='timeline'&&<TimelineView dataset={search?{...dataset,records:dataset.records.filter(record=>[record.title,record.caseId,...record.steps.map(step=>step.text)].join(' ').toLowerCase().includes(search.toLowerCase()))}:dataset} onOpenImage={openImage}/>} 
+      {view==='overview'&&<OverviewView dataset={dataset} selectedDate={selectedDate} onSelectDate={setSelectedDate} onOpenImage={openImage} onNavigate={name=>setView(name as ViewName)} hideContent={hideContent}/>} 
+      {view==='timeline'&&<TimelineView dataset={search?{...dataset,records:dataset.records.filter(record=>[record.title,record.caseId,...record.steps.map(step=>step.text)].join(' ').toLowerCase().includes(search.toLowerCase()))}:dataset} onOpenImage={openImage} hideContent={hideContent}/>} 
       {view==='categories'&&<CategoriesView dataset={dataset}/>} 
       {view==='work-front'&&<WorkFrontView dataset={dataset} onOpenCase={()=>setView('cases')}/>} 
       {view==='group-editor'&&<GroupEditorView dataset={dataset} onChange={applyDataset}/>} 
