@@ -6,7 +6,7 @@ import { loginPersonalWps } from '../lib/api';
 
 export function ImportDialog({ open, onClose, onImported }: { open: boolean; onClose: () => void; onImported: (result: ImportResult) => Promise<void> }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [year, setYear] = useState(2026);
+  const [year, setYear] = useState(new Date().getFullYear());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   if (!open) return null;

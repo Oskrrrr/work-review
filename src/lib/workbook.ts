@@ -113,31 +113,55 @@ export async function importWorkbook(file: File, year: number, sheetName = 'Shee
   const sheet = workbook.Sheets[sheetName] ?? workbook.Sheets[workbook.SheetNames.find(name => !name.startsWith('WpsReserved_')) ?? ''];
   if (!sheet) throw new Error('找不到可读取的工作表。');
   const range = XLSX.utils.decode_range(sheet['!ref'] ?? 'A1:P1');
-  if (range.e.c < 3) throw new Error('工作表至少需要“日期、星期、具体事项、分类”四列。');
+  if (range.e.c < 2) throw new Error('工作表至少需要日期、事项和分类等基本列。');
 
+  const normalizeHeader = (value: unknown) => textOf(value).toLowerCase().replace(/[\s_\-：:（）()]/g, '');
+  const aliases = {
+    date: ['日期', '工作日期', '发生日期', '完成日期', '时间', 'date'],
+    weekday: ['星期', '星期几', '周几', 'weekday'],
+    title: ['具体事项', '事项名称', '事项', '工作事项', '工作内容', '任务', '任务名称', '标题', '内容', 'title'],
+    category: ['分类', '类别', '工作分类', '事项分类', '所属分类', '小类', 'category']
+  } as const;
+  let headerRow = -1;
+  let columns = { date: 0, weekday: 1, title: 2, category: 3 };
+  let bestScore = 0;
+  for (let candidate = 0; candidate <= Math.min(8, range.e.r); candidate += 1) {
+    const values = Array.from({ length: range.e.c + 1 }, (_, column) => normalizeHeader(sheet[XLSX.utils.encode_cell({ r: candidate, c: column })]?.v));
+    const find = (names: readonly string[]) => values.findIndex(value => names.includes(value));
+    const detected = { date: find(aliases.date), weekday: find(aliases.weekday), title: find(aliases.title), category: find(aliases.category) };
+    const score = [detected.date, detected.title, detected.category].filter(value => value >= 0).length;
+    if (score > bestScore && detected.title >= 0 && (detected.date >= 0 || detected.category >= 0)) {
+      bestScore = score;
+      headerRow = candidate;
+      columns = { date: detected.date >= 0 ? detected.date : 0, weekday: detected.weekday, title: detected.title, category: detected.category >= 0 ? detected.category : 3 };
+    }
+  }
+  const dataStartRow = headerRow >= 0 ? headerRow + 1 : 1;
   const { imageIndex, warnings } = extractImages(arrayBuffer);
   const records: WorkRecord[] = [];
   let currentDateValue: unknown = null;
   let currentWeekday = '';
   let invalidDateRows = 0;
   let imageReferences = 0;
+  const ignoredColumns = new Set([columns.date, columns.weekday, columns.title, columns.category]);
 
-  for (let row = 1; row <= range.e.r; row += 1) {
+  for (let row = dataStartRow; row <= range.e.r; row += 1) {
     const cell = (column: number) => sheet[XLSX.utils.encode_cell({ r: row, c: column })];
-    const dateCell = cell(0);
-    const weekdayCell = cell(1);
+    const dateCell = cell(columns.date);
+    const weekdayCell = columns.weekday >= 0 ? cell(columns.weekday) : undefined;
     if (dateCell?.v != null && textOf(dateCell.v)) currentDateValue = dateCell.v;
     if (weekdayCell?.v != null && textOf(weekdayCell.v)) currentWeekday = textOf(weekdayCell.v);
-    const title = textOf(cell(2)?.v);
+    const title = textOf(cell(columns.title)?.v);
     if (!title) continue;
     const date = parseWorkDate(currentDateValue, year);
     if (!date) {
       invalidDateRows += 1;
       continue;
     }
-    const originalCategory = textOf(cell(3)?.v) || '未分类';
+    const originalCategory = textOf(cell(columns.category)?.v) || '未分类';
     const steps: WorkStep[] = [];
-    for (let column = 4; column <= Math.min(15, range.e.c); column += 1) {
+    for (let column = 0; column <= range.e.c; column += 1) {
+      if (ignoredColumns.has(column)) continue;
       const sourceCell = cell(column);
       if (!sourceCell) continue;
       const formula = textOf(sourceCell.f || sourceCell.v);
@@ -145,42 +169,28 @@ export async function importWorkbook(file: File, year: number, sheetName = 'Shee
       if (imageId) {
         imageReferences += 1;
         const image = imageIndex.get(imageId);
-        steps.push({ id: `${row + 1}-${column + 1}`, order: column - 3, kind: 'image', imageId, imageName: image?.name || imageId });
+        steps.push({ id: `${row + 1}-${column + 1}`, order: column, kind: 'image', imageId, imageName: image?.name || imageId });
       } else {
         const text = textOf(sourceCell.v);
-        if (text) steps.push({ id: `${row + 1}-${column + 1}`, order: column - 3, kind: 'text', text });
+        if (text) steps.push({ id: `${row + 1}-${column + 1}`, order: column, kind: 'text', text });
       }
     }
     const signatureInput = JSON.stringify([date, title, originalCategory, steps.map(step => step.kind === 'text' ? step.text : step.imageId)]);
     const sourceSignature = stableHash(signatureInput);
-    records.push({
-      id: `record-${sourceSignature}-${row + 1}`,
-      sourceRow: row + 1,
-      date,
-      weekday: currentWeekday,
-      title,
-      originalCategory,
-      effectiveCategory: originalCategory,
-      steps,
-      sourceSignature
-    });
+    records.push({ id: `record-${sourceSignature}-${row + 1}`, sourceRow: row + 1, date, weekday: currentWeekday, title, originalCategory, effectiveCategory: originalCategory, steps, sourceSignature });
   }
 
-  if (!records.length) throw new Error('没有找到可导入的工作记录，请确认具体事项位于 C 列。');
+  if (!records.length) throw new Error('没有找到可导入的工作记录，请确认表头中包含日期、事项和分类列。');
   if (invalidDateRows) warnings.push(`${invalidDateRows} 行因日期无法识别而未导入。`);
   if (imageReferences && !imageIndex.size) warnings.push('发现图片公式，但未能解析图片资源。');
+  if (headerRow >= 0) warnings.push(`已根据表头自动识别日期、事项、分类${columns.weekday >= 0 ? '、星期' : ''}和跟进列。`);
+  else warnings.push('未检测到标准表头，已兼容读取 A列日期、B列星期、C列事项、D列分类。');
+  // 同一年份再次导入同名工作簿时更新原数据集；不同年份或不同文件名则保留为独立数据集。
+  const datasetId = `${year}-${stableHash(file.name)}`;
 
   return {
     dataset: {
-      meta: {
-        sourceName: file.name,
-        sheetName: sheetName in workbook.Sheets ? sheetName : workbook.SheetNames[0],
-        year,
-        importedAt: new Date().toISOString(),
-        sourceMode: 'local',
-        imageCount: imageReferences,
-        warnings
-      },
+      meta: { datasetId, sourceName: file.name, sheetName: sheetName in workbook.Sheets ? sheetName : workbook.SheetNames[0], year, importedAt: new Date().toISOString(), sourceMode: 'local', imageCount: imageReferences, warnings },
       records,
       cases: []
     },

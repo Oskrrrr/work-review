@@ -34,6 +34,22 @@ describe('workbook importer', () => {
     expect(result.dataset.records[1].date).toBe('2026-01-04');
     expect(result.dataset.records[0].steps.map(step => step.text)).toEqual(['步骤一','步骤二']);
   });
+
+  it('detects equivalent headers even when column order changes and weekday is absent', async () => {
+    const workbook = XLSX.utils.book_new();
+    const sheet = XLSX.utils.aoa_to_sheet([
+      ['分类', '工作日期', '事项名称', '处理记录'],
+      ['设备维护', '2027-02-03', '更换门禁电池', '已完成更换']
+    ]);
+    XLSX.utils.book_append_sheet(workbook, sheet, '记录');
+    const bytes = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+    const result = await importWorkbook(new File([bytes], '2027工作记录.xlsx'), 2027, 'Sheet1');
+    expect(result.dataset.records).toHaveLength(1);
+    expect(result.dataset.records[0].date).toBe('2027-02-03');
+    expect(result.dataset.records[0].title).toBe('更换门禁电池');
+    expect(result.dataset.records[0].originalCategory).toBe('设备维护');
+    expect(result.dataset.records[0].steps.map(step => step.text)).toEqual(['已完成更换']);
+  });
 });
 
 const samplePath = process.env.SAMPLE_WORKBOOK;
