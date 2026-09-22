@@ -52,7 +52,7 @@
 
 ### Windows 客户端
 
-从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.3.1-windows-x64-setup.exe`。
+从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.3.2-windows-x64-setup.exe`。
 
 首次使用有两种方式：
 

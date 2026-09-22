@@ -45,6 +45,15 @@ function datasetLabel(item: WorkDataset) {
   return item.meta.displayName?.trim() || item.meta.sourceName;
 }
 
+// Imported workbooks commonly carry the data year in their display name
+// (for example, “2025工作记录.xlsx”). Prefer that explicit year in the
+// overview while keeping the editable metadata year as the fallback.
+function datasetDisplayYear(item: WorkDataset) {
+  const label = datasetLabel(item);
+  const match = label.match(/(?:^|[^\d])(20\d{2})(?=[^\d]|$)/);
+  return match ? Number(match[1]) : item.meta.year;
+}
+
 function sortDatasets(items: WorkDataset[]) {
   return [...items].sort((a, b) => b.meta.year - a.meta.year || b.meta.importedAt.localeCompare(a.meta.importedAt));
 }
@@ -171,6 +180,7 @@ function App() {
   const reject = (suggestion:CaseSuggestion) => { const next=[...rejectedSuggestions,suggestion.id]; setRejectedSuggestions(next); localStorage.setItem('rejected-suggestions',JSON.stringify(next)); notify('已忽略这条关联建议'); };
   const clear = async () => { if (!window.confirm('确定清除当前浏览器中的全部年度工作记录和图片吗？原始 Excel 不会受到影响。')) return; await clearLocalData(); setDatasets([]); setDataset(demoDataset); setSelectedDate(newestDate(demoDataset)); notify('本地数据已清除'); };
   const switchDataset = (id:string) => { const target = datasets.find(item => datasetId(item) === id); if (!target) return; setDataset(target); setSelectedDate(newestDate(target)); };
+  const selectHeatmapDate = (date: string) => setSelectedDate(current => current === date ? '' : date);
   const openImage = (url:string,title:string) => setImagePreview({url,title});
   const syncNow = async () => {
     if (dataset.meta.sourceMode === 'personal-wps') {
@@ -193,9 +203,9 @@ function App() {
       <div className="source-card"><div className="source-title"><Cloud size={17}/><strong>{dataset.meta.sourceMode==='demo'?'等待连接':'数据源已连接'}</strong></div><p>{dataset.meta.sourceName}<br/>{dataset.meta.sourceMode==='demo'?'可先导入本地工作簿':`已导入 ${dataset.records.length} 条记录`}</p><button onClick={syncNow}><RefreshCw size={15}/><span>{dataset.meta.sourceMode==='personal-wps'?'同步个人 WPS':dataset.meta.sourceMode==='wps'?'立即同步':dataset.meta.sourceMode==='demo'?'连接数据源':'重新导入'}</span></button></div>
     </aside>
     <main>
-      <header className="topbar"><div><p>工作记录</p>{view==='overview'&&<h1>{dataset.meta.year} 年工作回顾</h1>}</div><div className="top-actions">{datasets.length > 1 && <label className="dataset-switcher"><span>数据年度</span><select value={datasetId(dataset)} onChange={event => switchDataset(event.target.value)}>{sortDatasets(datasets).map(item => <option key={datasetId(item)} value={datasetId(item)}>{datasetLabel(item)}</option>)}</select></label>}<label className="search"><Search size={16}/><input aria-label="全局搜索" value={search} onChange={event=>setSearch(event.target.value)} onKeyDown={event=>{if(event.key==='Enter')setView('timeline')}} placeholder="搜索事项、跟进或编号"/>{search&&<small>{searchMatchCount}</small>}</label><button className={`privacy-toggle${hideContent ? ' active' : ''}`} onClick={() => setHideContent(value => { if (!value) setSearch(''); return !value; })} title={hideContent ? '显示工作内容' : '隐藏工作内容'}>{hideContent ? <Eye size={16}/> : <EyeOff size={16}/>}<span>{hideContent ? '显示内容' : '隐藏内容'}</span></button><button className="import-button" onClick={()=>setImportOpen(true)}><FileSpreadsheet size={17}/><span>导入工作簿</span></button><div className="avatar">我</div></div></header>
+      <header className="topbar"><div><p>工作记录</p>{view==='overview'&&<h1>{datasetDisplayYear(dataset)} 年工作回顾</h1>}</div><div className="top-actions">{datasets.length > 1 && <label className="dataset-switcher"><span>数据年度</span><select value={datasetId(dataset)} onChange={event => switchDataset(event.target.value)}>{sortDatasets(datasets).map(item => <option key={datasetId(item)} value={datasetId(item)}>{datasetLabel(item)}</option>)}</select></label>}<label className="search"><Search size={16}/><input aria-label="全局搜索" value={search} onChange={event=>setSearch(event.target.value)} onKeyDown={event=>{if(event.key==='Enter')setView('timeline')}} placeholder="搜索事项、跟进或编号"/>{search&&<small>{searchMatchCount}</small>}</label><button className={`privacy-toggle${hideContent ? ' active' : ''}`} onClick={() => setHideContent(value => { if (!value) setSearch(''); return !value; })} title={hideContent ? '显示工作内容' : '隐藏工作内容'}>{hideContent ? <Eye size={16}/> : <EyeOff size={16}/>}<span>{hideContent ? '显示内容' : '隐藏内容'}</span></button><button className="import-button" onClick={()=>setImportOpen(true)}><FileSpreadsheet size={17}/><span>导入工作簿</span></button><div className="avatar">我</div></div></header>
       {dataset.meta.sourceMode==='demo'&&<div className="notice"><span>当前是示例数据。导入你的工作记录 Excel 后，会在当前浏览器中生成真实时间线和图片。</span><button onClick={()=>setImportOpen(true)}>现在导入</button></div>}
-      {view==='overview'&&<OverviewView dataset={dataset} selectedDate={selectedDate} onSelectDate={setSelectedDate} onOpenImage={openImage} onNavigate={name=>setView(name as ViewName)} hideContent={hideContent}/>} 
+      {view==='overview'&&<OverviewView dataset={dataset} year={datasetDisplayYear(dataset)} selectedDate={selectedDate} onSelectDate={selectHeatmapDate} onOpenImage={openImage} onNavigate={name=>setView(name as ViewName)} hideContent={hideContent}/>} 
       {view==='timeline'&&<TimelineView dataset={search?{...dataset,records:dataset.records.filter(record=>[record.title,record.caseId,...record.steps.map(step=>step.text)].join(' ').toLowerCase().includes(search.toLowerCase()))}:dataset} onOpenImage={openImage} hideContent={hideContent}/>} 
       {view==='categories'&&<CategoriesView dataset={dataset}/>} 
       {view==='work-front'&&<WorkFrontView dataset={dataset} onOpenCase={()=>setView('cases')}/>} 

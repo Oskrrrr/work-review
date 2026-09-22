@@ -1,7 +1,7 @@
 {
   "name": "wps-worklog-pwa",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "个人工作记录与长期事项回顾客户端",
   "author": "Oskrrrr",
   "type": "module",
@@ -42,6 +42,7 @@
   "build": {
     "appId": "com.workreview.desktop",
     "productName": "工作脉络",
+    "executableName": "工作脉络",
     "asar": true,
     "files": ["dist/**/*", "electron/**/*", "package.json"],
     "extraResources": [{ "from": "vendor/kdocs-cli", "to": "vendor/kdocs-cli", "filter": ["**/*"] }],
