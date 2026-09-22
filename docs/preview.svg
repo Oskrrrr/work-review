@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">工作脉络界面预览</title>
+  <desc id="desc">展示年度概览、工作热力图和长期工作项目的抽象界面预览，不包含真实工作数据。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4faf6"/><stop offset="1" stop-color="#e9f3ed"/></linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#23845f"/><stop offset="1" stop-color="#0e5d43"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#144b35" flood-opacity=".12"/></filter>
+  </defs>
+  <rect width="1280" height="720" rx="24" fill="url(#bg)"/>
+  <rect x="26" y="26" width="230" height="668" rx="18" fill="#f8fcf9" stroke="#dbe9df"/>
+  <circle cx="69" cy="76" r="22" fill="url(#green)"/><path d="M61 76h16M69 68v16" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <text x="105" y="74" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="21" font-weight="700" fill="#16392b">工作脉络</text>
+  <text x="105" y="96" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="12" fill="#799185">个人工作记录</text>
+  <g font-family="Arial,'Microsoft YaHei',sans-serif" font-size="14" fill="#52685b">
+    <rect x="44" y="145" width="194" height="42" rx="10" fill="#e3f3e9"/><text x="67" y="172" fill="#176b4d" font-weight="700">年度概览</text>
+    <text x="67" y="224">工作时间线</text><text x="67" y="273">分类复盘</text><text x="67" y="322">长期工作前台</text>
+    <text x="67" y="406">事项编号总表</text><text x="67" y="455">数据与同步</text>
+  </g>
+  <text x="304" y="78" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="14" fill="#789087">工作记录</text>
+  <text x="304" y="119" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="30" font-weight="700" fill="#122f25">2026 年工作回顾</text>
+  <g filter="url(#shadow)">
+    <rect x="304" y="154" width="606" height="282" rx="18" fill="#fff"/>
+    <rect x="934" y="154" width="312" height="282" rx="18" fill="#fff"/>
+    <rect x="304" y="458" width="942" height="204" rx="18" fill="#fff"/>
+  </g>
+  <text x="332" y="191" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#183a2b">工作热力图</text>
+  <text x="332" y="216" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="12" fill="#7a9183">颜色越深，当天记录的事项越多</text>
+  <g transform="translate(334 248)">
+    <g fill="#e5f2e9"><rect width="18" height="18" rx="4"/><rect x="24" width="18" height="18" rx="4"/><rect x="48" width="18" height="18" rx="4"/><rect x="72" width="18" height="18" rx="4"/><rect x="96" width="18" height="18" rx="4"/><rect x="120" width="18" height="18" rx="4"/><rect x="144" width="18" height="18" rx="4"/><rect x="168" width="18" height="18" rx="4"/><rect x="192" width="18" height="18" rx="4"/><rect x="216" width="18" height="18" rx="4"/><rect x="240" width="18" height="18" rx="4"/></g>
+    <g fill="#9ed2b2"><rect y="24" width="18" height="18" rx="4"/><rect x="48" y="24" width="18" height="18" rx="4"/><rect x="72" y="24" width="18" height="18" rx="4"/><rect x="144" y="24" width="18" height="18" rx="4"/><rect x="216" y="24" width="18" height="18" rx="4"/></g>
+    <g fill="#55a87b"><rect x="24" y="48" width="18" height="18" rx="4"/><rect x="72" y="48" width="18" height="18" rx="4"/><rect x="96" y="48" width="18" height="18" rx="4"/><rect x="168" y="48" width="18" height="18" rx="4"/><rect x="240" y="48" width="18" height="18" rx="4"/></g>
+    <g fill="#176b4d"><rect x="48" y="72" width="18" height="18" rx="4"/><rect x="96" y="72" width="18" height="18" rx="4"/><rect x="120" y="72" width="18" height="18" rx="4"/><rect x="192" y="72" width="18" height="18" rx="4"/></g>
+    <g fill="#2d8a65"><rect x="24" y="96" width="18" height="18" rx="4"/><rect x="120" y="96" width="18" height="18" rx="4"/><rect x="144" y="96" width="18" height="18" rx="4"/><rect x="216" y="96" width="18" height="18" rx="4"/></g>
+  </g>
+  <text x="962" y="191" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#183a2b">长期工作项目</text>
+  <text x="962" y="222" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="13" fill="#176b4d" font-weight="700">W-000001 · 持续 126 天</text>
+  <rect x="962" y="244" width="250" height="8" rx="4" fill="#e2eee6"/><rect x="962" y="244" width="186" height="8" rx="4" fill="#2b8a65"/>
+  <text x="962" y="282" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="12" fill="#63796c">类别：基层治理-走访</text>
+  <text x="962" y="314" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="12" fill="#63796c">记录 18 次 · 最近跟进 3 天前</text>
+  <text x="962" y="360" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="13" fill="#183a2b">首次记录 ───── 最近跟进</text>
+  <circle cx="968" cy="388" r="6" fill="#2b8a65"/><circle cx="1206" cy="388" r="6" fill="#2b8a65"/><path d="M974 388h226" stroke="#c1ddca" stroke-width="3" stroke-linecap="round"/>
+  <text x="332" y="497" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#183a2b">今日工作记录</text>
+  <text x="332" y="528" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="13" fill="#63796c">2026-09-22 · 4 条记录</text>
+  <g font-family="Arial,'Microsoft YaHei',sans-serif" font-size="13">
+    <rect x="332" y="552" width="286" height="74" rx="10" fill="#f3faf5"/><text x="350" y="579" fill="#176b4d" font-size="11">基层治理-走访</text><text x="350" y="603" fill="#233e31">完成阶段性材料核对</text>
+    <rect x="636" y="552" width="286" height="74" rx="10" fill="#f7faf8"/><text x="654" y="579" fill="#176b4d" font-size="11">项目协作-资料整理</text><text x="654" y="603" fill="#233e31">汇总本周跟进事项</text>
+    <rect x="940" y="552" width="272" height="74" rx="10" fill="#f7faf8"/><text x="958" y="579" fill="#176b4d" font-size="11">AI 年度报告素材</text><text x="958" y="603" fill="#233e31">导出 Markdown 文字稿</text>
+  </g>
+</svg>
