@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.2.0",
   "description": "个人工作记录与长期事项回顾客户端",
-  "author": "工作脉络",
+  "author": "Oskrrrr",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
