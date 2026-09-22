@@ -1,0 +1,27 @@
+{
+  "version": "2.0",
+  "envId": "{{env.CLOUDBASE_ENV_ID}}",
+  "framework": {
+    "name": "wps-worklog-pwa",
+    "plugins": {
+      "client": {
+        "use": "@cloudbase/framework-plugin-website",
+        "inputs": { "outputPath": "dist", "cloudPath": "/", "ignore": ["*.map"] }
+      },
+      "api": {
+        "use": "@cloudbase/framework-plugin-function",
+        "inputs": {
+          "functionRootPath": "cloudfunctions",
+          "functions": [{
+            "name": "worklog-api",
+            "timeout": 60,
+            "memorySize": 1024,
+            "runtime": "Nodejs18.15",
+            "handler": "index.main",
+            "triggers": [{ "name": "sync-every-15-minutes", "type": "timer", "config": "0 */15 * * * * *" }]
+          }]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "name": "wps-worklog-pwa",
+  "private": true,
+  "version": "0.2.0",
+  "description": "个人工作记录与长期事项回顾客户端",
+  "author": "工作脉络",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "test": "vitest run",
+    "preview": "vite preview --host 127.0.0.1",
+    "client:start": "npm run build && electron .",
+    "client:package": "npm run build && electron-builder --win nsis",
+    "client:dir": "npm run build && electron-builder --win --dir"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2",
+    "idb-keyval": "^6.2.2",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.0",
+    "workbox-window": "^7.4.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7",
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^2.1.8",
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12",
+    "@electron/get": "^4.0.0"
+  },
+  "main": "electron/main.cjs",
+  "build": {
+    "appId": "com.workreview.desktop",
+    "productName": "工作脉络",
+    "asar": true,
+    "files": ["dist/**/*", "electron/**/*", "package.json"],
+    "directories": { "output": "release" },
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "artifactName": "工作脉络-${version}-Setup.${ext}" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true }
+  },
+  "pnpm": {
+    "overrides": {
+      "@electron/get": "4.0.3"
+    },
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

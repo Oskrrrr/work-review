@@ -1,0 +1,11 @@
+{
+  "name": "worklog-api",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.mjs",
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.7.2",
+    "fflate": "^0.8.2",
+    "xlsx": "^0.18.5"
+  }
+}

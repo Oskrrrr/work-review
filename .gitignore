@@ -1,0 +1,33 @@
+node_modules/
+**/node_modules/
+dist/
+release/
+.env
+.env.local
+.env.*
+!.env.example
+.sites-runtime/
+*.log
+coverage/
+*.tsbuildinfo
+
+# Personal workbooks and exported local data. Keep real work records out of GitHub.
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+*.db
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+工作配置-*.json
+work-review-*.json
+
+# OS/editor/build leftovers
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+npm-debug.log*
+pnpm-debug.log*

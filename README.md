@@ -1,0 +1,118 @@
+<div align="center">
+
+# 工作脉络
+
+### 把零散的工作记录，整理成可回顾、可追踪、可写成年度报告的工作脉络
+
+个人工作记录可视化与长期事项复盘客户端。支持本地 Excel、个人 WPS 云文档、事项串联、类别分析、长期工作项目和 AI 年度报告素材导出。
+
+[![CI](https://github.com/Oskrrrr/work-review/actions/workflows/ci.yml/badge.svg)](https://github.com/Oskrrrr/work-review/actions/workflows/ci.yml)
+[![Electron](https://img.shields.io/badge/desktop-Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![React](https://img.shields.io/badge/frontend-React-149ECA?logo=react&logoColor=white)](https://react.dev/)
+[![WPS](https://img.shields.io/badge/cloud-Personal%20WPS-176B4D)](https://github.com/kdocs-app/kdocs-skill)
+
+<br />
+
+**本地优先 · 隐私友好 · 面向真实工作复盘**
+
+</div>
+
+<p align="center">
+  <img src="docs/preview.svg" alt="工作脉络抽象界面预览" width="920" />
+</p>
+
+## 为什么做这个工具
+
+工作记录通常散落在 Excel 的日期行里：同一件事可能跨越几个月，跟进内容分布在不同日期，年终回顾时很难看出工作的连续性。
+
+工作脉络把这些记录转换成几个更适合复盘的视角：
+
+| 视角 | 能看到什么 |
+| --- | --- |
+| 年度概览 | 工作热力图、工作日分布、分类趋势和当天全部记录 |
+| 工作时间线 | 按日期、类别、关键词检索和筛选每一项工作 |
+| 长期工作前台 | 从首次记录到最近跟进的持续周期、节点和进展 |
+| 事项编号总表 | 将属于同一工作的多条记录串联起来，并允许逐条移除错误关联 |
+| AI 年度报告素材 | 导出“大类-小类”、事项编号、长期项目和完整时间线组成的 Markdown 文字稿 |
+
+## 功能亮点
+
+- 从 Excel 解析日期、分类、跟进内容和 `DISPIMG` 图片引用
+- 通过年度热力图快速定位高强度工作日期，并支持隐藏法定节假日和双休日
+- 工作卡片显示“大类-小类”，多图记录支持上一张/下一张浏览
+- 自动给跨日期、相似内容的记录生成事项关联建议
+- 支持自定义关联、事项编号、类别纠正和关联排除词
+- 长期工作前台按持续时间、记录次数和事项编号排序与筛选
+- 一键导出适合交给 AI 的年度工作报告素材，或复制到剪贴板
+- 个人 WPS 模式使用官方 `kdocs-cli`，每个用户登录自己的账号
+- 配置和工作记录默认保存在当前客户端；支持手动导出/导入配置
+- Windows Electron 客户端，同时保留网页/PWA 运行方式
+
+## 安装使用
+
+### Windows 客户端
+
+从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载 `工作脉络-*-Setup.exe`，安装后即可使用。
+
+首次使用有两种方式：
+
+1. 在「数据与同步」中登录个人 WPS，搜索并选择工作记录 Excel。
+2. 跳过 WPS 登录，直接导入本地 Excel。
+
+个人 WPS 模式需要官方组件 `kdocs-cli`。安装说明见官方项目：[kdocs-app/kdocs-skill](https://github.com/kdocs-app/kdocs-skill)。
+
+### 从源码运行
+
+要求：Node.js 20+、pnpm 9+。
+
+```powershell
+pnpm install
+pnpm dev
+```
+
+打开终端提示的本地地址，选择「导入工作簿」即可开始使用。
+
+构建 Windows 客户端：
+
+```powershell
+pnpm run client:package
+```
+
+便携版目录：
+
+```powershell
+pnpm run client:dir
+```
+
+## 隐私与数据安全
+
+工作脉络的个人客户端默认采用本地优先设计：
+
+- 本地 Excel 解析后的记录、图片和人工配置保存在当前客户端的本地存储中。
+- 个人 WPS 登录由官方 `kdocs-cli` 处理，凭据保存在当前电脑的系统凭据中。
+- 个人 WPS 模式不需要本项目的 WPS App ID、App Key 或 CloudBase 云函数。
+- AI 年度报告素材在本地生成，不会自动发送给任何 AI 服务。
+- 本项目不内置维护者的 WPS 密钥，也不会把用户密钥写入源码。
+
+不要将真实工作记录、导出的配置、AI 年度报告或 `.env` 文件提交到 GitHub。完整安全说明见 [SECURITY.md](SECURITY.md)。
+
+## 旧版企业 WPS/CloudBase 方案
+
+仓库中保留了早期企业 WPS/CloudBase 兼容代码，位于 `cloudfunctions/` 和 `cloudbase/`，主要用于已有部署的迁移和参考。新用户优先使用 Windows 客户端的个人 WPS 模式或本地 Excel 模式。
+
+旧版部署说明见 [docs/部署到CloudBase.md](docs/部署到CloudBase.md)。
+
+## 开发与贡献
+
+提交前运行：
+
+```powershell
+pnpm test -- --run
+pnpm build
+```
+
+GitHub Actions 会在 push 和 Pull Request 时自动运行测试和网页构建。提交代码前请先阅读 [docs/开源发布清单.md](docs/开源发布清单.md)。
+
+## 项目状态
+
+项目目前处于持续完善阶段。欢迎通过 Issue 反馈 Excel 格式兼容性、长期事项整理方式和客户端使用体验问题。
