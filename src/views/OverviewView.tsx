@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, ChevronRight, Image as ImageIcon, ListChecks, Sparkles, Tags } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Heatmap, type HeatmapPeriod } from '../components/Heatmap';
 import { RecordCard } from '../components/RecordCard';
@@ -28,11 +28,28 @@ export function OverviewView({ dataset, selectedDate, onSelectDate, onOpenImage,
   const activeDays = new Set(dataset.records.map(record => record.date)).size;
   const maxCategory = categoryStats[0]?.[1] ?? 1;
   return <>
+    <section className="overview-hero" aria-label="年度工作概览">
+      <div className="overview-hero-copy">
+        <div className="overview-kicker"><Sparkles size={14}/> 年度复盘工作台</div>
+        <h2>{dataset.meta.year} 年，把零散记录变成可回看的工作脉络</h2>
+        <p>从每天的记录出发，快速找到高强度工作日、持续推进的事项和下一步值得整理的线索。</p>
+        <div className="overview-hero-actions">
+          <button className="hero-action primary" onClick={() => onNavigate('timeline')}>查看完整时间线 <ArrowUpRight size={15}/></button>
+          <button className="hero-action" onClick={() => onNavigate('front')}>打开长期工作前台</button>
+        </div>
+      </div>
+      <div className="overview-hero-visual" aria-hidden="true">
+        <div className="hero-orbit orbit-one"/>
+        <div className="hero-orbit orbit-two"/>
+        <div className="hero-focus-card"><span>当前数据集</span><strong>{dataset.records.length.toLocaleString()} <small>条记录</small></strong><em><CalendarDays size={13}/> 覆盖 {activeDays} 个工作日</em></div>
+        <div className="hero-floating-note"><span>长期项目</span><strong>{dataset.cases.length}</strong></div>
+      </div>
+    </section>
     <section className="metrics" aria-label="年度统计">
-      <article className="metric primary"><span>已记录工作日</span><strong>{activeDays}<small>天</small></strong><p>当前数据集覆盖 {dataset.records.length} 条记录</p></article>
-      <article className="metric"><span>事项记录</span><strong>{dataset.records.length}</strong><p>点击热力图查看当天内容</p></article>
-      <article className="metric"><span>事项分类</span><strong>{new Set(dataset.records.map(record => record.originalCategory)).size}</strong><p>保留原始与纠正口径</p></article>
-      <article className="metric"><span>处理照片</span><strong>{dataset.meta.imageCount}</strong><p>登录后私密查看</p></article>
+      <article className="metric primary"><div className="metric-top"><span>已记录工作日</span><i><CalendarDays size={16}/></i></div><strong>{activeDays}<small>天</small></strong><p>当前数据集覆盖 {dataset.records.length} 条记录</p></article>
+      <article className="metric"><div className="metric-top"><span>事项记录</span><i><ListChecks size={16}/></i></div><strong>{dataset.records.length}</strong><p>点击热力图查看当天内容</p></article>
+      <article className="metric"><div className="metric-top"><span>事项分类</span><i><Tags size={16}/></i></div><strong>{new Set(dataset.records.map(record => record.originalCategory)).size}</strong><p>保留原始与纠正口径</p></article>
+      <article className="metric"><div className="metric-top"><span>处理照片</span><i><ImageIcon size={16}/></i></div><strong>{dataset.meta.imageCount}</strong><p>登录后私密查看</p></article>
     </section>
     <section className="dashboard-grid">
       <div className="main-column"><article className="panel heatmap-panel"><div className="panel-header"><div><h2>工作热力图</h2><p>颜色越深，当天记录的事项越多</p></div><div className="period-controls"><div className="period-switcher" role="group" aria-label="热力图周期"><button className={heatmapPeriod==='year'?'active':''} onClick={() => setHeatmapPeriod('year')}>年</button><button className={heatmapPeriod==='quarter'?'active':''} onClick={() => setHeatmapPeriod('quarter')}>季度</button><button className={heatmapPeriod==='month'?'active':''} onClick={() => setHeatmapPeriod('month')}>月</button><button className={heatmapPeriod==='week'?'active':''} onClick={() => setHeatmapPeriod('week')}>周</button></div><button className={`heatmap-rest-toggle${hideRestDays ? ' active' : ''}`} onClick={() => setHideRestDays(value => !value)}>{hideRestDays ? '显示休息日' : '隐藏休息日'}</button>{heatmapPeriod !== 'year' && <div className="period-arrows"><button onClick={() => onSelectDate(shiftDate(selectedDate, heatmapPeriod, -1))} aria-label="查看上一段时间">‹</button><button onClick={() => onSelectDate(shiftDate(selectedDate, heatmapPeriod, 1))} aria-label="查看下一段时间">›</button></div>}</div></div><Heatmap records={dataset.records} year={dataset.meta.year} selectedDate={selectedDate} period={heatmapPeriod} onSelect={onSelectDate} hideRestDays={hideRestDays}/><div className="heatmap-footer"><span>已选择 {selectedDate}，{recordsForDay.length} 条记录</span><div className="legend">少 <i className="level-0"/><i className="level-1"/><i className="level-2"/><i className="level-3"/><i className="level-4"/> 多</div></div></article>
