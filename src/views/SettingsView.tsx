@@ -1,12 +1,46 @@
-import { Cloud, Copy, Database, Download, FileText, LogIn, RefreshCw, Search, Upload } from 'lucide-react';
+import { CalendarDays, Cloud, Copy, Database, Download, FileText, LogIn, RefreshCw, Save, Search, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getPersonalWpsStatus, loginPersonalWps, searchPersonalWpsFiles, type PersonalWpsFile } from '../lib/api';
 import type { WorkDataset } from '../types';
 
 const FILE_CONFIG_KEY = 'work-review-personal-wps-file';
 
-export function SettingsView({ dataset, onImport, onClear, onExportConfig, onImportConfig, onConfigureWps, onPersonalImport, onExportAiText, onCopyAiText }: { dataset: WorkDataset; onImport: () => void; onClear: () => void; onExportConfig: () => void; onImportConfig: (file: File) => void; onConfigureWps: () => void; onPersonalImport: (file: PersonalWpsFile) => Promise<void>; onExportAiText: () => void; onCopyAiText: () => void }) {
-  return <section className="workspace-view"><div className="view-heading"><div><h2>数据与同步</h2><p>从个人 WPS 云文档选择工作记录，也可以随时导入本地 Excel。</p></div></div><div className="settings-grid"><article className="panel setting-card"><FileStatus icon={<Database/>} title="当前数据源" value={dataset.meta.sourceName}/><dl><div><dt>工作表</dt><dd>{dataset.meta.sheetName}</dd></div><div><dt>年份</dt><dd>{dataset.meta.year}</dd></div><div><dt>导入时间</dt><dd>{new Date(dataset.meta.importedAt).toLocaleString('zh-CN')}</dd></div><div><dt>记录数</dt><dd>{dataset.records.length}</dd></div></dl><button className="primary-action" onClick={onImport}>导入本地 Excel</button></article><PersonalWpsPicker onConfigure={onConfigureWps} onImport={onPersonalImport}/><article className="panel setting-card ai-export-card"><FileStatus icon={<FileText/>} title="AI 年度报告素材" value="文字版 · Markdown"/><p className="setting-note">把年度概览、类别、长期工作项目、未串联事项和完整时间线整理成一份适合交给 AI 的文字稿，不包含图片文件本身。</p><div className="config-backup-actions"><button className="primary-action" onClick={onExportAiText}><Download size={15}/>导出文字稿（.md）</button><button className="secondary-action" onClick={onCopyAiText}><Copy size={15}/>复制到剪贴板</button></div></article><article className="panel setting-card config-backup-card"><FileStatus icon={<Download/>} title="个人配置备份" value="可离线迁移"/><p className="setting-note">只保存事项编号、自定义关联、自定义大类和排除词，不包含原始工作记录和图片。</p><div className="config-backup-actions"><button className="secondary-action" onClick={onExportConfig}><Download size={15}/>保存配置到本地</button><label className="secondary-action"><Upload size={15}/>导入本地配置<input type="file" accept="application/json,.json" onChange={event => { const file = event.target.files?.[0]; if (file) onImportConfig(file); event.currentTarget.value = ''; }}/></label></div></article></div><button className="danger-link" onClick={onClear}>清除当前客户端中的工作记录和图片</button></section>;
+export function SettingsView({ dataset, datasets, onImport, onUpdateDataset, onDeleteDataset, onClear, onExportConfig, onImportConfig, onConfigureWps, onPersonalImport, onExportAiText, onCopyAiText }: { dataset: WorkDataset; datasets: WorkDataset[]; onImport: () => void; onUpdateDataset: (id: string, changes: { displayName: string; year: number }) => void; onDeleteDataset: (id: string) => Promise<void>; onClear: () => void; onExportConfig: () => void; onImportConfig: (file: File) => void; onConfigureWps: () => void; onPersonalImport: (file: PersonalWpsFile) => Promise<void>; onExportAiText: () => void; onCopyAiText: () => void }) {
+  return <section className="workspace-view">
+    <div className="view-heading"><div><h2>数据与同步</h2><p>管理已导入的数据表，连接个人 WPS，或随时导入新的本地 Excel。</p></div></div>
+    <div className="settings-dashboard">
+      <DatasetLibrary dataset={dataset} datasets={datasets} onImport={onImport} onUpdate={onUpdateDataset} onDelete={onDeleteDataset}/>
+      <PersonalWpsPicker onConfigure={onConfigureWps} onImport={onPersonalImport}/>
+      <article className="panel setting-card ai-export-card"><FileStatus icon={<FileText/>} title="AI 年度报告素材" value="文字版 · Markdown"/><p className="setting-note">把年度概览、类别、长期工作项目、未串联事项和完整时间线整理成一份适合交给 AI 的文字稿，不包含图片文件本身。</p><div className="config-backup-actions"><button className="primary-action" onClick={onExportAiText}><Download size={15}/>导出文字稿（.md）</button><button className="secondary-action" onClick={onCopyAiText}><Copy size={15}/>复制到剪贴板</button></div></article>
+      <article className="panel setting-card config-backup-card"><FileStatus icon={<Download/>} title="个人配置备份" value="可离线迁移"/><p className="setting-note">只保存事项编号、自定义关联、自定义大类和排除词，不包含原始工作记录和图片。</p><div className="config-backup-actions"><button className="secondary-action" onClick={onExportConfig}><Download size={15}/>保存配置到本地</button><label className="secondary-action"><Upload size={15}/>导入本地配置<input type="file" accept="application/json,.json" onChange={event => { const file = event.target.files?.[0]; if (file) onImportConfig(file); event.currentTarget.value = ''; }}/></label></div></article>
+    </div>
+    <button className="danger-link" onClick={onClear}>清除当前客户端中的全部工作记录和图片</button>
+  </section>;
+}
+
+function DatasetLibrary({ dataset, datasets, onImport, onUpdate, onDelete }: { dataset: WorkDataset; datasets: WorkDataset[]; onImport: () => void; onUpdate: (id: string, changes: { displayName: string; year: number }) => void; onDelete: (id: string) => Promise<void> }) {
+  const idOf = (item: WorkDataset) => item.meta.datasetId || `${item.meta.year}-${item.meta.sourceName}`;
+  const visibleDatasets = datasets.length ? datasets : dataset.meta.sourceMode === 'demo' ? [] : [dataset];
+  const ordered = [...visibleDatasets].sort((a, b) => b.meta.year - a.meta.year || b.meta.importedAt.localeCompare(a.meta.importedAt));
+  const [drafts, setDrafts] = useState<Record<string, { name: string; year: string }>>({});
+  useEffect(() => setDrafts(Object.fromEntries(ordered.map(item => [idOf(item), { name: item.meta.displayName || item.meta.sourceName, year: String(item.meta.year) }]))), [datasets, dataset]);
+  const updateDraft = (id: string, field: 'name' | 'year', value: string) => setDrafts(current => ({ ...current, [id]: { ...current[id], [field]: value } }));
+  const save = (item: WorkDataset) => {
+    const id = idOf(item);
+    const draft = drafts[id];
+    const year = Number(draft?.year);
+    if (!Number.isInteger(year) || year < 1900 || year > 2200) return;
+    onUpdate(id, { displayName: draft?.name ?? item.meta.sourceName, year });
+  };
+  return <article className="panel dataset-library-card">
+    <div className="dataset-library-head"><FileStatus icon={<Database/>} title="已同步数据表" value={ordered.length ? `${ordered.length} 个数据集，按年份排序` : '尚未导入工作记录'}/><button className="primary-action" onClick={onImport}><Upload size={15}/>导入本地 Excel</button></div>
+    <p className="setting-note">在这里整理每张已导入的表。修改“显示名称”只影响年度概览中的下拉名称；删除只移除当前客户端的数据，不会删除原始 Excel 或 WPS 云文件。</p>
+    {ordered.length ? <div className="dataset-library-list">{ordered.map(item => { const id = idOf(item); const draft = drafts[id] ?? { name: item.meta.displayName || item.meta.sourceName, year: String(item.meta.year) }; const active = id === idOf(dataset); return <article className={`dataset-library-item${active ? ' active' : ''}`} key={id}>
+      <div className="dataset-item-summary"><span className="dataset-year-badge"><CalendarDays size={14}/>{item.meta.year}</span><div><strong>{item.meta.displayName || item.meta.sourceName}</strong><small>{active ? '当前正在查看' : '已同步'} · {item.meta.sheetName} · {item.records.length} 条记录</small></div></div>
+      <div className="dataset-edit-fields"><label><span>数据年度</span><input type="number" min="1900" max="2200" value={draft.year} onChange={event => updateDraft(id, 'year', event.target.value)}/></label><label><span>年度概览显示名称</span><input value={draft.name} onChange={event => updateDraft(id, 'name', event.target.value)} placeholder="例如：2026 工作记录"/></label></div>
+      <div className="dataset-item-actions"><button className="secondary-action" onClick={() => save(item)} title="保存表格名称和年份"><Save size={14}/>保存</button><button className="icon-text-danger" onClick={() => void onDelete(id)} title="删除当前客户端中的这张表"><Trash2 size={14}/>删除</button></div>
+    </article>; })}</div> : <div className="dataset-library-empty"><Database size={21}/><div><strong>还没有同步的数据表</strong><span>导入本地 Excel，或从个人 WPS 中选择一张工作记录表。</span></div></div>}
+  </article>;
 }
 
 function PersonalWpsPicker({ onConfigure, onImport }: { onConfigure: () => void; onImport: (file: PersonalWpsFile) => Promise<void> }) {

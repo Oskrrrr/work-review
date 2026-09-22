@@ -42,6 +42,16 @@ export async function saveDataset(dataset: WorkDataset) {
   return set(datasetKey(id), saved, appStore);
 }
 
+/** Remove exactly one imported workbook and the images that belong to it. */
+export async function deleteDataset(datasetId: string) {
+  const stored = await entries(appStore);
+  await Promise.all(stored
+    .filter(([key]) => String(key) === datasetKey(datasetId) || String(key).startsWith(`${IMAGE_PREFIX}${datasetId}:`))
+    .map(([key]) => del(key, appStore)));
+  const active = await get<WorkDataset>(DATASET_KEY, appStore);
+  if (active && datasetIdOf(active) === datasetId) await del(DATASET_KEY, appStore);
+}
+
 export async function saveImages(images: ImportedImage[], datasetId = 'legacy') {
   await Promise.all(images.map(image => set(`${IMAGE_PREFIX}${datasetId}:${image.id}`, { blob: image.blob, name: image.name }, appStore)));
 }

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ImportDialog } from './components/ImportDialog';
 import { FirstRunDialog } from './components/FirstRunDialog';
 import { acceptSuggestion, buildCaseSuggestions, renumberCases, type CaseSuggestion } from './lib/cases';
-import { clearLocalData, loadDataset, loadDatasets, saveDataset, saveImages } from './lib/storage';
+import { clearLocalData, deleteDataset, loadDataset, loadDatasets, saveDataset, saveImages } from './lib/storage';
 import { getCloudDataset, getCloudSettings, hasCloudApi, saveCloudCases, saveCloudSettings, WPS_AUTH_PENDING_KEY, type UserSettings, triggerCloudSync, downloadPersonalWpsFile, type PersonalWpsFile, loginPersonalWps } from './lib/api';
 import { demoDataset } from './demo';
 import type { WorkDataset } from './types';
@@ -35,6 +35,18 @@ const navigation: Array<{group?:string;id:ViewName;label:string;icon:typeof Layo
 
 function newestDate(dataset: WorkDataset) {
   return dataset.records.reduce((latest, record) => record.date > latest ? record.date : latest, `${dataset.meta.year}-01-01`);
+}
+
+function datasetIdOf(item: WorkDataset) {
+  return item.meta.datasetId || `${item.meta.year}-${item.meta.sourceName}`;
+}
+
+function datasetLabel(item: WorkDataset) {
+  return item.meta.displayName?.trim() || item.meta.sourceName;
+}
+
+function sortDatasets(items: WorkDataset[]) {
+  return [...items].sort((a, b) => b.meta.year - a.meta.year || b.meta.importedAt.localeCompare(a.meta.importedAt));
 }
 
 // WPS 同步只更新原始记录；本机保存的人工关联不能被远端数据覆盖。
@@ -94,7 +106,7 @@ function App() {
   useEffect(() => { (async () => {
     const stored = await loadDataset();
     const all = await loadDatasets();
-    if (stored) { const normalized = renumberCases(stored); setDatasets(all); setDataset(normalized); setSelectedDate(newestDate(normalized)); }
+    if (stored) { const normalized = renumberCases(stored); setDatasets(sortDatasets(all)); setDataset(normalized); setSelectedDate(newestDate(normalized)); }
     else if (!localStorage.getItem('work-review-onboarding-seen')) setFirstRunOpen(true);
     setHydrated(true);
   })(); }, []);
@@ -102,12 +114,38 @@ function App() {
   const suggestions = useMemo(() => buildCaseSuggestions(dataset.records,rejectedSuggestions,dataset.meta.associationExclusions ?? []),[dataset.records,rejectedSuggestions,dataset.meta.associationExclusions]);
 
   const notify = (message:string) => { setToast(message); window.clearTimeout(toastTimer.current); toastTimer.current=window.setTimeout(()=>setToast(''),2600); };
-  const datasetId = (item: WorkDataset) => item.meta.datasetId || `${item.meta.year}-${item.meta.sourceName}`;
+  const datasetId = datasetIdOf;
   const applyDataset = (next:WorkDataset) => {
     const normalized = renumberCases(next);
     setDataset(normalized);
-    setDatasets(current => [...current.filter(item => datasetId(item) !== datasetId(normalized)), normalized].sort((a, b) => b.meta.year - a.meta.year || b.meta.importedAt.localeCompare(a.meta.importedAt)));
+    setDatasets(current => sortDatasets([...current.filter(item => datasetId(item) !== datasetId(normalized)), normalized]));
     void saveDataset(normalized);
+  };
+  const updateStoredDataset = (id: string, changes: { displayName: string; year: number }) => {
+    const target = datasets.find(item => datasetId(item) === id);
+    if (!target) return;
+    const next = { ...target, meta: { ...target.meta, displayName: changes.displayName.trim() || undefined, year: changes.year } };
+    setDatasets(current => sortDatasets(current.map(item => datasetId(item) === id ? next : item)));
+    if (datasetId(dataset) === id) {
+      setDataset(next);
+      setSelectedDate(newestDate(next));
+    }
+    void saveDataset(next);
+    notify('数据表信息已保存');
+  };
+  const removeStoredDataset = async (id: string) => {
+    const target = datasets.find(item => datasetId(item) === id);
+    if (!target || !window.confirm(`确定删除“${datasetLabel(target)}”吗？该表的记录、事项配置和关联图片都会从当前客户端移除，原始 Excel 和 WPS 云文件不会被删除。`)) return;
+    await deleteDataset(id);
+    const remaining = datasets.filter(item => datasetId(item) !== id);
+    setDatasets(sortDatasets(remaining));
+    if (datasetId(dataset) === id) {
+      const next = remaining[0] ?? demoDataset;
+      setDataset(next);
+      setSelectedDate(newestDate(next));
+      if (next.meta.sourceMode !== 'demo') await saveDataset(next);
+    }
+    notify(`已删除数据表“${datasetLabel(target)}”`);
   };
   const handleImported = async (result:ImportResult) => { await saveImages(result.images, datasetId(result.dataset)); applyDataset(result.dataset); setSelectedDate(newestDate(result.dataset)); notify(`已保存 ${result.dataset.meta.year} 年数据：${result.dataset.records.length} 条记录和 ${result.dataset.meta.imageCount} 个图片引用`); };
   const handlePersonalWpsImport = async (file: PersonalWpsFile) => {
@@ -155,7 +193,7 @@ function App() {
       <div className="source-card"><div className="source-title"><Cloud size={17}/><strong>{dataset.meta.sourceMode==='demo'?'等待连接':'数据源已连接'}</strong></div><p>{dataset.meta.sourceName}<br/>{dataset.meta.sourceMode==='demo'?'可先导入本地工作簿':`已导入 ${dataset.records.length} 条记录`}</p><button onClick={syncNow}><RefreshCw size={15}/><span>{dataset.meta.sourceMode==='personal-wps'?'同步个人 WPS':dataset.meta.sourceMode==='wps'?'立即同步':dataset.meta.sourceMode==='demo'?'连接数据源':'重新导入'}</span></button></div>
     </aside>
     <main>
-      <header className="topbar"><div><p>工作记录</p>{view==='overview'&&<h1>{dataset.meta.year} 年工作回顾</h1>}</div><div className="top-actions">{datasets.length > 1 && <label className="dataset-switcher"><span>数据年度</span><select value={datasetId(dataset)} onChange={event => switchDataset(event.target.value)}>{datasets.map(item => <option key={datasetId(item)} value={datasetId(item)}>{item.meta.year} · {item.meta.sourceName}</option>)}</select></label>}<label className="search"><Search size={16}/><input aria-label="全局搜索" value={search} onChange={event=>setSearch(event.target.value)} onKeyDown={event=>{if(event.key==='Enter')setView('timeline')}} placeholder="搜索事项、跟进或编号"/>{search&&<small>{searchMatchCount}</small>}</label><button className={`privacy-toggle${hideContent ? ' active' : ''}`} onClick={() => setHideContent(value => { if (!value) setSearch(''); return !value; })} title={hideContent ? '显示工作内容' : '隐藏工作内容'}>{hideContent ? <Eye size={16}/> : <EyeOff size={16}/>}<span>{hideContent ? '显示内容' : '隐藏内容'}</span></button><button className="import-button" onClick={()=>setImportOpen(true)}><FileSpreadsheet size={17}/><span>导入工作簿</span></button><div className="avatar">我</div></div></header>
+      <header className="topbar"><div><p>工作记录</p>{view==='overview'&&<h1>{dataset.meta.year} 年工作回顾</h1>}</div><div className="top-actions">{datasets.length > 1 && <label className="dataset-switcher"><span>数据年度</span><select value={datasetId(dataset)} onChange={event => switchDataset(event.target.value)}>{sortDatasets(datasets).map(item => <option key={datasetId(item)} value={datasetId(item)}>{datasetLabel(item)}</option>)}</select></label>}<label className="search"><Search size={16}/><input aria-label="全局搜索" value={search} onChange={event=>setSearch(event.target.value)} onKeyDown={event=>{if(event.key==='Enter')setView('timeline')}} placeholder="搜索事项、跟进或编号"/>{search&&<small>{searchMatchCount}</small>}</label><button className={`privacy-toggle${hideContent ? ' active' : ''}`} onClick={() => setHideContent(value => { if (!value) setSearch(''); return !value; })} title={hideContent ? '显示工作内容' : '隐藏工作内容'}>{hideContent ? <Eye size={16}/> : <EyeOff size={16}/>}<span>{hideContent ? '显示内容' : '隐藏内容'}</span></button><button className="import-button" onClick={()=>setImportOpen(true)}><FileSpreadsheet size={17}/><span>导入工作簿</span></button><div className="avatar">我</div></div></header>
       {dataset.meta.sourceMode==='demo'&&<div className="notice"><span>当前是示例数据。导入你的工作记录 Excel 后，会在当前浏览器中生成真实时间线和图片。</span><button onClick={()=>setImportOpen(true)}>现在导入</button></div>}
       {view==='overview'&&<OverviewView dataset={dataset} selectedDate={selectedDate} onSelectDate={setSelectedDate} onOpenImage={openImage} onNavigate={name=>setView(name as ViewName)} hideContent={hideContent}/>} 
       {view==='timeline'&&<TimelineView dataset={search?{...dataset,records:dataset.records.filter(record=>[record.title,record.caseId,...record.steps.map(step=>step.text)].join(' ').toLowerCase().includes(search.toLowerCase()))}:dataset} onOpenImage={openImage} hideContent={hideContent}/>} 
@@ -165,7 +203,7 @@ function App() {
       {view==='custom-association'&&<CustomAssociationView dataset={dataset} onChange={applyDataset}/>} 
       {view==='cases'&&<CasesView dataset={dataset} onChange={applyDataset}/>} 
       {view==='suggestions'&&<SuggestionsView suggestions={suggestions} onAccept={accept} onReject={reject}/>} 
-      {view==='settings'&&<SettingsView dataset={dataset} onImport={()=>setImportOpen(true)} onClear={clear} onExportConfig={exportConfig} onImportConfig={importConfig} onConfigureWps={()=>setFirstRunOpen(true)} onPersonalImport={handlePersonalWpsImport} onExportAiText={exportAiText} onCopyAiText={copyAiText}/>} 
+      {view==='settings'&&<SettingsView dataset={dataset} datasets={datasets} onImport={()=>setImportOpen(true)} onUpdateDataset={updateStoredDataset} onDeleteDataset={removeStoredDataset} onClear={clear} onExportConfig={exportConfig} onImportConfig={importConfig} onConfigureWps={()=>setFirstRunOpen(true)} onPersonalImport={handlePersonalWpsImport} onExportAiText={exportAiText} onCopyAiText={copyAiText}/>}
     </main>
     <ImportDialog open={importOpen} onClose={()=>setImportOpen(false)} onImported={handleImported}/>
     <FirstRunDialog open={firstRunOpen} onSkip={()=>setFirstRunOpen(false)} onContinue={()=>setFirstRunOpen(false)} onImport={()=>{ setFirstRunOpen(false); setImportOpen(true); }} onPersonalLogin={async () => { try { const result = await loginPersonalWps(); if (!result.authenticated) throw new Error(result.message || '个人 WPS 登录未完成'); setFirstRunOpen(false); setView('settings'); notify('个人 WPS 已连接，请选择工作记录文件'); } catch (reason) { notify(reason instanceof Error ? reason.message : '个人 WPS 登录失败'); } }}/>

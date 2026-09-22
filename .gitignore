@@ -2,6 +2,7 @@ node_modules/
 **/node_modules/
 dist/
 release/
+release-*/
 vendor/kdocs-cli/
 .env
 .env.local
