@@ -3,6 +3,8 @@ node_modules/
 dist/
 release/
 release-*/
+build-stage-*/
+prepackaged-*/
 vendor/kdocs-cli/
 .env
 .env.local
