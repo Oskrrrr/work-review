@@ -21,7 +21,7 @@
 </div>
 
 <p align="center">
-  <img src="docs/preview.svg" alt="工作脉络抽象界面预览" width="920" />
+  <img src="docs/preview.svg?v=1.0.0" alt="工作脉络 1.0.0 界面预览" width="920" />
 </p>
 
 ## 为什么做这个工具
