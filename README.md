@@ -6,6 +6,7 @@
 
 个人工作记录可视化与长期事项复盘客户端。支持本地 Excel、个人 WPS 云文档、事项串联、类别分析、长期工作项目和 AI 年度报告素材导出。
 
+[![Latest release](https://img.shields.io/github/v/release/Oskrrrr/work-review?display_name=tag&sort=semver&color=176B4D)](https://github.com/Oskrrrr/work-review/releases/latest)
 [![CI](https://github.com/Oskrrrr/work-review/actions/workflows/ci.yml/badge.svg)](https://github.com/Oskrrrr/work-review/actions/workflows/ci.yml)
 [![Electron](https://img.shields.io/badge/desktop-Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/frontend-React-149ECA?logo=react&logoColor=white)](https://react.dev/)
@@ -14,6 +15,8 @@
 <br />
 
 **本地优先 · 隐私友好 · 面向真实工作复盘**
+
+[下载 Windows 1.0.0](https://github.com/Oskrrrr/work-review/releases/download/v1.0.0/work-review-1.0.0-windows-x64-setup.exe) · [查看完整更新说明](https://github.com/Oskrrrr/work-review/releases/tag/v1.0.0)
 
 </div>
 
@@ -42,19 +45,23 @@
 - 工作卡片显示“大类-小类”，多图记录支持上一张/下一张浏览
 - 自动给跨日期、相似内容的记录生成事项关联建议
 - 支持自定义关联、事项编号、类别纠正和关联排除词
-- 长期工作前台按持续时间、记录次数和事项编号排序与筛选
-- 一键导出适合交给 AI 的年度工作报告素材，或复制到剪贴板
+- 长期工作前台按持续时间、记录次数和事项编号排序与筛选，跨年度主档支持展开/收起并记住用户选择
+- 长期事项与阶段性工作可以手动区分；事项支持办结、重新打开、跨年度关联和合并拆分编号
+- 一键导出适合交给 AI 的年度工作报告素材，固定包含数据概览、长期项目、阶段性事项、未串联记录、完整时间线和写作提示
 - 可生成年度总结海报，保存前支持工作内容打码
-- 可手动区分长期事项与阶段性工作，长期事项支持办结和重新打开
+- 新增“软件信息”页面，集中查看版本、发布者、功能边界、隐私说明和项目入口
 - 个人 WPS 模式使用官方 `kdocs-cli`，每个用户登录自己的账号
-- 配置和工作记录默认保存在当前客户端；支持手动导出/导入配置
+- 数据年度可以独立管理，支持文件名年份识别、手动调整年度和显示名称
+- 配置和工作记录默认保存在当前客户端；支持完整配置备份与导入
 - Windows Electron 客户端，同时保留网页/PWA 运行方式
 
 ## 安装使用
 
 ### Windows 客户端
 
-从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-1.0.0-windows-x64-setup.exe`。
+从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前正式版为 `work-review-1.0.0-windows-x64-setup.exe`。
+
+安装完成后会创建“工作脉络”开始菜单快捷方式；应用内的“软件信息”页面可以查看当前版本和项目链接。
 
 ### 1.0.0 正式版更新（相比 0.8.0）
 
@@ -159,4 +166,4 @@ GitHub Actions 会在 push 和 Pull Request 时自动运行测试和网页构建
 
 ## 项目状态
 
-项目目前处于持续完善阶段。欢迎通过 Issue 反馈 Excel 格式兼容性、长期事项整理方式和客户端使用体验问题。
+当前版本为 `1.0.0` 正式版。欢迎通过 Issue 反馈 Excel 格式兼容性、长期事项整理方式和客户端使用体验问题。
