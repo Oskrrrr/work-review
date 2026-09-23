@@ -1,4 +1,4 @@
-import type { CaseItem, WorkDataset, WorkRecord } from '../types';
+import type { CaseItem, CaseKind, CaseLifecycle, WorkDataset, WorkRecord } from '../types';
 
 export interface CaseSuggestion {
   id: string;
@@ -87,6 +87,8 @@ export function acceptSuggestion(dataset: WorkDataset, suggestion: CaseSuggestio
     title: suggestion.left.title.length <= suggestion.right.title.length ? suggestion.left.title : suggestion.right.title,
     recordIds: [suggestion.left.id, suggestion.right.id],
     status: 'confirmed',
+    kind: 'long-term',
+    lifecycle: 'active',
     createdAt: new Date().toISOString()
   };
   const recordIds = new Set(caseItem.recordIds);
@@ -98,9 +100,22 @@ export function createManualCase(dataset: WorkDataset, recordIds: string[], titl
   if (selected.length < 2) return dataset;
   const caseId = nextCaseId(dataset.cases);
   const caseTitle = title?.trim() || [...selected].sort((a, b) => a.title.length - b.title.length)[0].title;
-  const caseItem: CaseItem = { id: caseId, title: caseTitle, recordIds: selected.map(record => record.id), status: 'confirmed', createdAt: new Date().toISOString() };
+  const caseItem: CaseItem = { id: caseId, title: caseTitle, recordIds: selected.map(record => record.id), status: 'confirmed', kind: 'long-term', lifecycle: 'active', createdAt: new Date().toISOString() };
   const selectedIds = new Set(caseItem.recordIds);
   return renumberCases({ ...dataset, cases: [...dataset.cases, caseItem], records: dataset.records.map(record => selectedIds.has(record.id) ? { ...record, caseId } : record) });
+}
+
+export function updateCaseKind(dataset: WorkDataset, caseId: string, kind: CaseKind): WorkDataset {
+  return { ...dataset, cases: dataset.cases.map(item => item.id === caseId ? { ...item, kind } : item) };
+}
+
+export function updateCaseLifecycle(dataset: WorkDataset, caseId: string, lifecycle: CaseLifecycle): WorkDataset {
+  return {
+    ...dataset,
+    cases: dataset.cases.map(item => item.id === caseId
+      ? { ...item, lifecycle, ...(lifecycle === 'completed' ? { completedAt: new Date().toISOString() } : { completedAt: undefined }) }
+      : item)
+  };
 }
 
 export function updateCaseCategory(dataset: WorkDataset, caseId: string, categoryOverride: string): WorkDataset {

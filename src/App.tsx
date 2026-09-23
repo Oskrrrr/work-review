@@ -293,7 +293,7 @@ function App() {
       {view==='overview'&&<OverviewView dataset={dataset} year={datasetDisplayYear(dataset)} selectedDate={selectedDate} onSelectDate={selectHeatmapDate} onOpenImage={openImage} onNavigate={name=>setView(name as ViewName)} hideContent={hideContent}/>} 
       {view==='timeline'&&<TimelineView dataset={search?{...dataset,records:dataset.records.filter(record=>[record.title,record.caseId,...record.steps.map(step=>step.text)].join(' ').toLowerCase().includes(search.toLowerCase()))}:dataset} onOpenImage={openImage} hideContent={hideContent}/>} 
       {view==='categories'&&<CategoriesView dataset={dataset}/>} 
-      {view==='work-front'&&<WorkFrontView dataset={dataset} onOpenCase={()=>setView('cases')}/>} 
+      {view==='work-front'&&<WorkFrontView dataset={dataset} onOpenCase={()=>setView('cases')} onChange={applyDataset}/>}
       {view==='group-editor'&&<GroupEditorView dataset={dataset} onChange={applyDataset}/>} 
       {view==='custom-association'&&<CustomAssociationView dataset={dataset} onChange={applyDataset}/>} 
       {view==='cases'&&<CasesView dataset={dataset} onChange={applyDataset}/>} 

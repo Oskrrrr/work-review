@@ -22,12 +22,20 @@ export interface WorkRecord {
   sourceSignature: string;
 }
 
+export type CaseKind = 'long-term' | 'periodic';
+export type CaseLifecycle = 'active' | 'completed';
+
 export interface CaseItem {
   id: string;
   title: string;
   categoryOverride?: string;
   recordIds: string[];
   status: 'confirmed' | 'suggested';
+  /** Whether this association belongs on the long-term work front. */
+  kind?: CaseKind;
+  /** A completed item remains in history and can be reopened later. */
+  lifecycle?: CaseLifecycle;
+  completedAt?: string;
   createdAt: string;
 }
 
