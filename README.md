@@ -6,6 +6,7 @@
 
 个人工作记录可视化与长期事项复盘客户端。支持本地 Excel、个人 WPS 云文档、事项串联、类别分析、长期工作项目和 AI 年度报告素材导出。
 
+[![Latest release](https://img.shields.io/github/v/release/Oskrrrr/work-review?display_name=tag&sort=semver&color=176B4D)](https://github.com/Oskrrrr/work-review/releases/latest)
 [![CI](https://github.com/Oskrrrr/work-review/actions/workflows/ci.yml/badge.svg)](https://github.com/Oskrrrr/work-review/actions/workflows/ci.yml)
 [![Electron](https://img.shields.io/badge/desktop-Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/frontend-React-149ECA?logo=react&logoColor=white)](https://react.dev/)
@@ -15,10 +16,12 @@
 
 **本地优先 · 隐私友好 · 面向真实工作复盘**
 
+[下载 Windows 1.0.0](https://github.com/Oskrrrr/work-review/releases/download/v1.0.0/work-review-1.0.0-windows-x64-setup.exe) · [查看完整更新说明](https://github.com/Oskrrrr/work-review/releases/tag/v1.0.0)
+
 </div>
 
 <p align="center">
-  <img src="docs/preview.svg" alt="工作脉络抽象界面预览" width="920" />
+  <img src="https://raw.githubusercontent.com/Oskrrrr/work-review/main/docs/preview.svg?v=1.0.0" alt="工作脉络 1.0.0 界面预览" width="920" />
 </p>
 
 ## 为什么做这个工具
@@ -42,17 +45,61 @@
 - 工作卡片显示“大类-小类”，多图记录支持上一张/下一张浏览
 - 自动给跨日期、相似内容的记录生成事项关联建议
 - 支持自定义关联、事项编号、类别纠正和关联排除词
-- 长期工作前台按持续时间、记录次数和事项编号排序与筛选
-- 一键导出适合交给 AI 的年度工作报告素材，或复制到剪贴板
+- 长期工作前台按持续时间、记录次数和事项编号排序与筛选，跨年度主档支持展开/收起并记住用户选择
+- 长期事项与阶段性工作可以手动区分；事项支持办结、重新打开、跨年度关联和合并拆分编号
+- 一键导出适合交给 AI 的年度工作报告素材，固定包含数据概览、长期项目、阶段性事项、未串联记录、完整时间线和写作提示
+- 可生成年度总结海报，保存前支持工作内容打码
+- 新增“软件信息”页面，集中查看版本、发布者、功能边界、隐私说明和项目入口
 - 个人 WPS 模式使用官方 `kdocs-cli`，每个用户登录自己的账号
-- 配置和工作记录默认保存在当前客户端；支持手动导出/导入配置
+- 数据年度可以独立管理，支持文件名年份识别、手动调整年度和显示名称
+- 配置和工作记录默认保存在当前客户端；支持完整配置备份与导入
 - Windows Electron 客户端，同时保留网页/PWA 运行方式
 
 ## 安装使用
 
 ### Windows 客户端
 
-从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.3.3-windows-x64-setup.exe`。
+从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前正式版为 `work-review-1.0.0-windows-x64-setup.exe`。
+
+安装完成后会创建“工作脉络”开始菜单快捷方式；应用内的“软件信息”页面可以查看当前版本和项目链接。
+
+### 1.0.0 正式版更新（相比 0.8.0）
+
+- 长期工作前台新增“跨年度长期事项”列表展开/收起，默认展开；用户收起后的状态会保存到本地，下次进入继续保持。
+- AI 年度报告素材导出重新整理为固定六个章节：数据概览、长期工作项目、已确认事项与阶段性工作、未串联的单项工作、完整工作时间线、给 AI 的写作提示。
+- 没有长期项目、只有阶段性事项、同时存在长期/阶段性/单项记录以及空数据集时，Markdown 文字稿都会保持完整结构，不再漏掉工作记录，也不会把所有事项错误称为长期项目。
+- 新增“软件信息”页面，展示版本、发布者、核心功能、本地优先与隐私说明，以及 GitHub 项目入口。
+- 使用新的“工作脉络” Windows 应用图标，并同步更新桌面应用、安装包、快捷方式、网页 favicon 和 PWA 图标。
+- 修复 Electron `file://` 环境下应用图标路径错误导致的破损图片占位符；修复软件信息页版本变量未替换导致页面空白的问题。
+- 安装包元数据统一使用发布者 `Oskrrrr`，配置 Windows 代码签名入口和标准安装包命名；正式签名需要提供受 Windows 信任的 Authenticode 证书。
+- 补充 Windows 签名说明、图标资源和对应构建验证；不改变原始 Excel、WPS 云文件和本地配置备份的隐私边界。
+
+### 0.8.0 更新
+
+- 跨年度长期事项主档现在可以直接添加任意年度的一条或多条工作记录。
+- 支持将去年只有一条的历史记录加入今年已经建立的长期事项，不需要为了满足自动关联条件而凑成两条记录。
+- 主档详情新增“添加历史记录”入口，可按数据年度和关键词选择记录。
+- 添加的单条记录会在项目详情中单独标记为“主档记录”，与年度事项编号并列展示。
+- 支持将单条记录移出主档，原始记录和事项编号不会被删除。
+- 记录链接同时保存来源特征，WPS 更新导致记录 ID 变化时仍可尝试恢复关联。
+
+### 0.7.5 更新
+
+- 修复个人 WPS 更新后，已经确认的关联再次出现在“待确认关联”的问题。
+- 为已确认工作增加稳定关联指纹，记录 ID 变化后仍能识别为同一项工作。
+- 配置备份升级为完整备份：覆盖所有已导入年度数据集，而非只保存当前数据集。
+- 备份新增年度显示名称、数据年度、事项编号、分类大类、自定义关联、排除词、关联历史、跨年度长期主档、个人 WPS 文件绑定、待确认处理记录和隐藏内容偏好。
+- 保留旧版配置文件的导入兼容；备份不包含原始工作记录、图片和登录密钥。
+
+### 0.7.4 更新
+
+- 新增事项编号合并：在“事项编号总表”勾选同一件工作被拆成的多个编号，点击“合并选中事项”即可合并为一个事项。
+- 合并时保留第一项作为目标，所有工作记录、分类修正、跨年度主档和自定义关联会一并迁移；原始工作记录不会删除。
+- 合并后的事项会重新按最早记录日期规范编号，避免出现重复或断号。
+
+### 跨年度长期事项
+
+在“事项编号总表”中将事项标记为“长期事项”，即可在“跨年度事项”列选择已有主档或新建主档。下一年度导入同一项目产生的新事项后，选择相同主档，长期工作前台会显示“始于”年份、覆盖年份以及累计记录数；年度概览仍只统计当前选择的年度，不会把跨年度数据重复计入。
 
 首次使用有两种方式：
 
@@ -60,6 +107,8 @@
 2. 跳过 WPS 登录，直接导入本地 Excel。
 
 Windows 安装包会在构建时从官方来源获取并内置固定版本的 `kdocs-cli`，普通用户不需要再手动安装。开发者从源码打包时，`scripts/fetch-kdocs-cli.cjs` 会自动下载并校验组件。个人 WPS 登录仍由 `kdocs-cli` 的官方登录流程完成。组件来源和版本说明见 [docs/第三方组件.md](docs/第三方组件.md) 以及官方项目：[kdocs-app/kdocs-skill](https://github.com/kdocs-app/kdocs-skill)。
+
+安装包使用 Oskrrrr 作为发布者元数据，并配置了正式 Windows 代码签名入口。要彻底消除其他电脑上的“未知发布者”提示，需要使用受 Windows 信任的 Authenticode 证书构建；具体步骤见 [docs/Windows代码签名.md](docs/Windows代码签名.md)。
 
 如果所在网络无法下载官方组件，仍然可以跳过 WPS 登录，直接导入本地 Excel 工作簿。
 
@@ -117,4 +166,4 @@ GitHub Actions 会在 push 和 Pull Request 时自动运行测试和网页构建
 
 ## 项目状态
 
-项目目前处于持续完善阶段。欢迎通过 Issue 反馈 Excel 格式兼容性、长期事项整理方式和客户端使用体验问题。
+当前版本为 `1.0.0` 正式版。欢迎通过 Issue 反馈 Excel 格式兼容性、长期事项整理方式和客户端使用体验问题。
