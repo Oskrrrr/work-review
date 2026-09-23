@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ImportDialog } from './components/ImportDialog';
 import { FirstRunDialog } from './components/FirstRunDialog';
 import { PosterExportDialog } from './components/PosterExportDialog';
-import { acceptSuggestion, buildCaseSuggestions, renumberCases, type CaseSuggestion } from './lib/cases';
+import { acceptSuggestion, buildCaseSuggestions, mergeCases, renumberCases, type CaseSuggestion } from './lib/cases';
 import { clearLocalData, deleteDataset, loadDataset, loadDatasets, saveDataset, saveImages } from './lib/storage';
 import { getCloudDataset, getCloudSettings, hasCloudApi, saveCloudCases, saveCloudSettings, WPS_AUTH_PENDING_KEY, PERSONAL_WPS_FILE_KEY, type UserSettings, triggerCloudSync, downloadPersonalWpsFile, type PersonalWpsFile, loginPersonalWps } from './lib/api';
 import { demoDataset } from './demo';
@@ -240,6 +240,12 @@ function App() {
     assignCaseProject(caseId, project.id);
     notify(`已建立跨年度长期事项“${normalized}”`);
   };
+  const mergeSelectedCases = (caseIds: string[]) => {
+    const next = mergeCases(dataset, caseIds);
+    if (next === dataset) return;
+    applyDataset(next);
+    notify(`已将 ${caseIds.length} 个事项合并为一件工作`);
+  };
   const updateCaseLifecycleAcrossProject = (caseId: string, lifecycle: 'active' | 'completed') => {
     const target = dataset.cases.find(item => item.id === caseId);
     const projectId = target?.longTermProjectId;
@@ -338,7 +344,7 @@ function App() {
       {view==='work-front'&&!selectedProject&&<WorkFrontView dataset={dataset} datasets={allDatasets} projects={longTermProjects} onOpenCase={()=>navigateToView('cases')} onOpenProject={setProjectDetailId} onChangeLifecycle={updateCaseLifecycleAcrossProject}/>}
       {view==='group-editor'&&<GroupEditorView dataset={dataset} datasets={datasets} onChange={applyDataset} onChangeGroups={updateCategoryGroups}/>}
       {view==='custom-association'&&<CustomAssociationView dataset={dataset} onChange={applyDataset}/>} 
-      {view==='cases'&&<CasesView dataset={dataset} projects={longTermProjects} onAssignProject={assignCaseProject} onCreateProject={createCaseProject} onChange={applyDataset} onChangeLifecycle={updateCaseLifecycleAcrossProject}/>}
+      {view==='cases'&&<CasesView dataset={dataset} projects={longTermProjects} onAssignProject={assignCaseProject} onCreateProject={createCaseProject} onChange={applyDataset} onChangeLifecycle={updateCaseLifecycleAcrossProject} onMerge={mergeSelectedCases}/>}
       {view==='suggestions'&&<SuggestionsView suggestions={suggestions} onAccept={accept} onReject={reject}/>} 
       {view==='settings'&&<SettingsView dataset={dataset} datasets={datasets} onImport={()=>setImportOpen(true)} onUpdateDataset={updateStoredDataset} onDeleteDataset={removeStoredDataset} onClear={clear} onExportConfig={exportConfig} onImportConfig={importConfig} onConfigureWps={()=>setFirstRunOpen(true)} onPersonalImport={file => handlePersonalWpsImport(file, dataset.meta.sourceMode === 'personal-wps' && personalFileMatchesDataset(file, dataset) ? datasetId(dataset) : undefined)} onExportAiText={exportAiText} onCopyAiText={copyAiText} onExportPoster={()=>setPosterOpen(true)}/>}
       </div>

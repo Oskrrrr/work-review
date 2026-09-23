@@ -54,7 +54,13 @@
 
 ### Windows 客户端
 
-从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.7.3-windows-x64-setup.exe`。
+从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.7.4-windows-x64-setup.exe`。
+
+### 0.7.4 更新
+
+- 新增事项编号合并：在“事项编号总表”勾选同一件工作被拆成的多个编号，点击“合并选中事项”即可合并为一个事项。
+- 合并时保留第一项作为目标，所有工作记录、分类修正、跨年度主档和自定义关联会一并迁移；原始工作记录不会删除。
+- 合并后的事项会重新按最早记录日期规范编号，避免出现重复或断号。
 
 ### 跨年度长期事项
 

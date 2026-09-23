@@ -279,11 +279,13 @@ select:not([multiple]):disabled { cursor:not-allowed; opacity:.62; background-co
 .case-detail-status span { display:inline-flex; align-items:center; padding:5px 8px; border-radius:999px; background:#edf7f0; color:var(--green); font-size:11px; }
 .case-detail-status span.completed { background:#f1f4f2; color:#6e7d73; }
 @media (min-width:1051px) { .case-layout { grid-template-columns:minmax(0,1fr); }.case-detail { position:static; } }
-.case-layout .table-wrap table { min-width:1060px; table-layout:auto; }
+.case-layout .table-wrap table { min-width:1100px; table-layout:auto; }
+.case-bulk-toolbar { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 14px; border:1px solid #cbe4d4; border-radius:12px; background:linear-gradient(100deg,#f1faf4,#fff); }
+.case-bulk-toolbar>div { display:grid; gap:3px; }.case-bulk-toolbar strong { color:var(--green); font-size:13px; }.case-bulk-toolbar span { color:var(--muted); font-size:11px; }.case-bulk-toolbar button { flex:none; }.case-bulk-toolbar button:disabled { opacity:.45; cursor:not-allowed; transform:none; box-shadow:none; }.case-select-col { width:48px; text-align:center; }.case-select-col input { width:16px; height:16px; accent-color:var(--green); cursor:pointer; }
 .case-layout .table-wrap th,.case-layout .table-wrap td { vertical-align:middle; white-space:nowrap; }
-.case-layout .table-wrap th:nth-child(2),.case-layout .table-wrap td:nth-child(2) { min-width:220px; white-space:normal; }
-.case-layout .table-wrap th:nth-child(6),.case-layout .table-wrap td:nth-child(6) { min-width:225px; }
-.case-layout .table-wrap td:nth-child(4),.case-layout .table-wrap td:nth-child(5),.case-layout .table-wrap td:nth-child(7) { min-width:135px; }
+.case-layout .table-wrap th:nth-child(3),.case-layout .table-wrap td:nth-child(3) { min-width:220px; white-space:normal; }
+.case-layout .table-wrap th:nth-child(7),.case-layout .table-wrap td:nth-child(7) { min-width:225px; }
+.case-layout .table-wrap td:nth-child(5),.case-layout .table-wrap td:nth-child(6),.case-layout .table-wrap td:nth-child(8) { min-width:135px; }
 @media (max-width:1050px) { .front-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:700px) { .front-kpis { grid-template-columns:1fr 1fr; }.front-card-actions { justify-content:flex-start; margin-top:8px; }.front-work-card-head { align-items:flex-start; flex-direction:column; }.case-status-button { white-space:nowrap; } }
 .case-project-picker { display:flex; align-items:center; gap:5px; min-width:170px; }

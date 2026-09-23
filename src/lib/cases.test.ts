@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { acceptSuggestion, buildCaseSuggestions, detachCase, updateCaseKind, updateCaseLifecycle } from './cases';
+import { acceptSuggestion, buildCaseSuggestions, detachCase, mergeCases, updateCaseKind, updateCaseLifecycle } from './cases';
 import type { WorkDataset, WorkRecord } from '../types';
 
 function record(id:string,date:string,title:string):WorkRecord { return { id,sourceRow:1,date,weekday:'一',title,originalCategory:'物业管理',effectiveCategory:'物业管理',steps:[],sourceSignature:id }; }
@@ -40,5 +40,15 @@ describe('case suggestions', () => {
     const reopened=updateCaseLifecycle(done,'W-000001','active');
     expect(reopened.cases[0].lifecycle).toBe('active');
     expect(reopened.cases[0].completedAt).toBeUndefined();
+  });
+
+  it('merges duplicate case numbers while preserving records and association metadata', () => {
+    const records=[record('a','2026-01-04','同一工作'),record('b','2026-01-05','同一工作'),record('c','2026-01-06','同一工作'),record('d','2026-01-07','同一工作')];
+    const dataset:WorkDataset={meta:{sourceName:'x',sheetName:'Sheet1',year:2026,importedAt:'',sourceMode:'local',imageCount:0,warnings:[],customAssociations:[{id:'rule-a',caseId:'W-000002',title:'同一工作',keywords:['同一'],recordIds:['c'],createdAt:''}]},records:records.map(item=>({...item,caseId:item.id<'c'?'W-000001':'W-000002'})),cases:[{id:'W-000001',title:'同一工作',recordIds:['a','b'],status:'confirmed',kind:'periodic',lifecycle:'active',createdAt:'2026-01-04T00:00:00Z'},{id:'W-000002',title:'同一工作',recordIds:['c','d'],status:'confirmed',kind:'periodic',lifecycle:'active',createdAt:'2026-01-06T00:00:00Z'}]};
+    const next=mergeCases(dataset,['W-000001','W-000002']);
+    expect(next.cases).toHaveLength(1);
+    expect(next.cases[0].recordIds).toEqual(['a','b','c','d']);
+    expect(next.records.every(item=>item.caseId===next.cases[0].id)).toBe(true);
+    expect(next.meta.customAssociations?.[0].caseId).toBe(next.cases[0].id);
   });
 });

@@ -1,10 +1,11 @@
-import { Check, Eye, EyeOff, FolderKanban, RotateCcw, Trash2, Unlink, X } from 'lucide-react';
+import { Check, Eye, EyeOff, FolderKanban, GitMerge, RotateCcw, Trash2, Unlink, X } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { detachCase, detachRecordFromCase, updateCaseCategory, updateCaseKind } from '../lib/cases';
 import type { LongTermProject, WorkDataset } from '../types';
 
-export function CasesView({ dataset, projects, onAssignProject, onCreateProject, onChangeLifecycle, onChange }: { dataset: WorkDataset; projects: LongTermProject[]; onAssignProject: (caseId: string, projectId?: string) => void; onCreateProject: (caseId: string, title: string) => void; onChangeLifecycle: (caseId: string, lifecycle: 'active' | 'completed') => void; onChange: (dataset: WorkDataset) => void }) {
+export function CasesView({ dataset, projects, onAssignProject, onCreateProject, onChangeLifecycle, onChange, onMerge }: { dataset: WorkDataset; projects: LongTermProject[]; onAssignProject: (caseId: string, projectId?: string) => void; onCreateProject: (caseId: string, title: string) => void; onChangeLifecycle: (caseId: string, lifecycle: 'active' | 'completed') => void; onChange: (dataset: WorkDataset) => void; onMerge: (caseIds: string[]) => void }) {
   const [selectedId, setSelectedId] = useState<string>();
+  const [mergeIds, setMergeIds] = useState<string[]>([]);
   const [newProjectFor, setNewProjectFor] = useState<string>();
   const [newProjectTitle, setNewProjectTitle] = useState('');
   const selected = dataset.cases.find(item => item.id === selectedId);
@@ -15,14 +16,24 @@ export function CasesView({ dataset, projects, onAssignProject, onCreateProject,
   const openNewProject = (caseId: string) => { setNewProjectFor(caseId); setNewProjectTitle(''); };
   const closeNewProject = () => { setNewProjectFor(undefined); setNewProjectTitle(''); };
   const submitNewProject = (event: FormEvent) => { event.preventDefault(); const title = newProjectTitle.trim(); if (!title || !newProjectFor) return; onCreateProject(newProjectFor, title); closeNewProject(); };
+  const toggleMerge = (caseId: string) => setMergeIds(current => current.includes(caseId) ? current.filter(id => id !== caseId) : [...current, caseId]);
+  const mergeSelected = () => {
+    if (mergeIds.length < 2) return;
+    const names = mergeIds.map(id => dataset.cases.find(item => item.id === id)?.title || id).join('、');
+    if (!window.confirm(`确定将 ${mergeIds.length} 个事项合并为一件工作吗？\n\n${names}\n\n将保留第一项的编号作为合并目标，所有记录会归入同一事项；此操作不会删除原始工作记录。`)) return;
+    onMerge(mergeIds);
+    setMergeIds([]);
+    setSelectedId(undefined);
+  };
   return <section className="workspace-view">
     <div className="view-heading"><div><h2>事项编号总表</h2><p>确认跨日期记录的归属，并手动区分长期事项或阶段性工作。长期事项还可以关联跨年度主档。</p></div><span>{dataset.cases.length} 个事项</span></div>
+    {dataset.cases.length > 1 && <div className="case-bulk-toolbar"><div><strong>合并重复事项</strong><span>勾选同一件工作的多个编号，将它们合并为一个事项。</span></div><button type="button" className="secondary-action" disabled={mergeIds.length < 2} onClick={mergeSelected}><GitMerge size={15}/>合并选中事项{mergeIds.length > 0 ? `（${mergeIds.length}）` : ''}</button></div>}
     {dataset.cases.length ? <div className="case-layout">
-      <article className="panel table-wrap"><table><thead><tr><th>编号</th><th>事项名称</th><th>记录</th><th>工作类型</th><th>状态</th><th>跨年度事项</th><th>纠正分类</th><th>操作</th></tr></thead><tbody>{dataset.cases.map(item => {
+      <article className="panel table-wrap"><table><thead><tr><th className="case-select-col">选择</th><th>编号</th><th>事项名称</th><th>记录</th><th>工作类型</th><th>状态</th><th>跨年度事项</th><th>纠正分类</th><th>操作</th></tr></thead><tbody>{dataset.cases.map(item => {
         const isOpen = selectedId === item.id;
         const completed = item.lifecycle === 'completed';
         return <tr key={item.id} className={completed ? 'case-row-completed' : undefined}>
-          <td className="case-code">{item.id}</td><td>{item.title}</td><td>{item.recordIds.length}</td>
+          <td className="case-select-col"><input type="checkbox" checked={mergeIds.includes(item.id)} onChange={() => toggleMerge(item.id)} aria-label={`选择 ${item.id} 用于合并`}/></td><td className="case-code">{item.id}</td><td>{item.title}</td><td>{item.recordIds.length}</td>
           <td><select value={item.kind || 'long-term'} onChange={event => onChange(updateCaseKind(dataset, item.id, event.target.value as 'long-term' | 'periodic'))}><option value="long-term">长期事项</option><option value="periodic">阶段性工作</option></select></td>
           <td><button className={`case-status-button${completed ? ' completed' : ''}`} onClick={() => onChangeLifecycle(item.id, completed ? 'active' : 'completed')} title={completed ? '重新打开事项' : '标记为已办结'}>{completed ? <><RotateCcw size={13}/>已办结</> : <><Check size={13}/>进行中</>}</button></td>
           <td>{item.kind === 'periodic' ? <span className="case-project-muted">阶段性工作不跨年度</span> : <div className="case-project-picker"><select value={item.longTermProjectId || ''} onChange={event => onAssignProject(item.id, event.target.value || undefined)}><option value="">未关联主档</option>{projects.map(project => <option key={project.id} value={project.id}>{project.title}</option>)}</select><button type="button" className="case-project-create" onClick={() => openNewProject(item.id)}>新建</button></div>}</td>

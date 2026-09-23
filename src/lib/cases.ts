@@ -129,6 +129,53 @@ export function updateCaseCategory(dataset: WorkDataset, caseId: string, categor
   };
 }
 
+/**
+ * Merge several confirmed case numbers into one item.
+ *
+ * The first selected case is kept as the destination so the user can choose
+ * which title/metadata should remain. Records, custom-association rules and
+ * cross-year links from the other cases are moved to that destination.
+ */
+export function mergeCases(dataset: WorkDataset, caseIds: string[]): WorkDataset {
+  const ids = [...new Set(caseIds)].filter(Boolean);
+  if (ids.length < 2) return dataset;
+  const selected = ids.map(id => dataset.cases.find(item => item.id === id)).filter((item): item is CaseItem => Boolean(item));
+  if (selected.length < 2) return dataset;
+  const destination = selected[0];
+  const selectedSet = new Set(selected.map(item => item.id));
+  const recordIds = [...new Set(selected.flatMap(item => item.recordIds))];
+  const categoryOverride = destination.categoryOverride || selected.find(item => item.categoryOverride)?.categoryOverride;
+  const longTermProjectId = destination.longTermProjectId || selected.find(item => item.longTermProjectId)?.longTermProjectId;
+  const completed = selected.every(item => item.lifecycle === 'completed');
+  const merged: CaseItem = {
+    ...destination,
+    recordIds,
+    title: destination.title || selected.find(item => item.title)?.title || '合并事项',
+    ...(categoryOverride ? { categoryOverride } : { categoryOverride: undefined }),
+    kind: selected.some(item => item.kind === 'long-term') ? 'long-term' : 'periodic',
+    lifecycle: completed ? 'completed' : 'active',
+    ...(completed ? { completedAt: selected.map(item => item.completedAt).filter(Boolean).sort().at(-1) || destination.completedAt } : { completedAt: undefined }),
+    ...(longTermProjectId ? { longTermProjectId } : { longTermProjectId: undefined }),
+    createdAt: selected.map(item => item.createdAt).filter(Boolean).sort()[0] || destination.createdAt
+  };
+  const records = dataset.records.map(record => {
+    if (!selectedSet.has(record.caseId || '') && !recordIds.includes(record.id)) return record;
+    return {
+      ...record,
+      caseId: destination.id,
+      effectiveCategory: merged.categoryOverride || record.originalCategory
+    };
+  });
+  const customAssociations = dataset.meta.customAssociations?.map(rule => selectedSet.has(rule.caseId) ? { ...rule, caseId: destination.id } : rule);
+  const next = {
+    ...dataset,
+    cases: [merged, ...dataset.cases.filter(item => !selectedSet.has(item.id))],
+    records,
+    meta: customAssociations ? { ...dataset.meta, customAssociations } : dataset.meta
+  };
+  return renumberCases(next);
+}
+
 export function detachCase(dataset: WorkDataset, caseId: string): WorkDataset {
   const target = dataset.cases.find(item => item.id === caseId);
   if (!target) return dataset;
