@@ -20,6 +20,7 @@ import { CustomAssociationView } from './views/CustomAssociationView';
 import { WorkFrontView } from './views/WorkFrontView';
 import { ProjectDetailView } from './views/ProjectDetailView';
 import { buildAiWorklogMarkdown } from './lib/textExport';
+import { reconcilePersonalDataset } from './lib/personalSync';
 
 type ViewName = 'overview'|'timeline'|'categories'|'work-front'|'cases'|'suggestions'|'group-editor'|'custom-association'|'settings';
 
@@ -105,7 +106,7 @@ function loadLongTermProjects() {
   try { return JSON.parse(localStorage.getItem(LONG_TERM_PROJECTS_KEY) || '[]') as LongTermProject[]; } catch { return []; }
 }
 
-// WPS 同步只更新原始记录；本机保存的人工关联不能被远端数据覆盖。
+// WPS 同步只更新原始记录；本机保存的人工关联会在刷新后的记录中重新对账。
 function settingsFrom(dataset: WorkDataset): UserSettings {
   return { cases: dataset.cases, categoryGroups: dataset.meta.categoryGroups ?? {}, customAssociations: dataset.meta.customAssociations ?? [], associationExclusions: dataset.meta.associationExclusions ?? [] };
 }
@@ -135,29 +136,10 @@ function mergeLocalUserState(remote: WorkDataset, local?: WorkDataset, cloudSett
   return applyCloudSettings(merged, localHasSettings ? settingsFrom(local!) : cloudSettings);
 }
 
-// Refreshing a workbook replaces only its source records. Keep the user's
-// manually confirmed projects, category groups and display name attached to
-// the same cloud file while dropping references to rows that no longer exist.
+// Refreshing a workbook replaces its source records, then reconciles the
+// user's manually confirmed projects and associations against the new rows.
 function mergePersonalDataset(previous: WorkDataset, imported: WorkDataset) {
-  const recordIds = new Set(imported.records.map(record => record.id));
-  const cases = previous.cases
-    .map(item => ({ ...item, recordIds: item.recordIds.filter(id => recordIds.has(id)) }))
-    .filter(item => item.recordIds.length);
-  const customAssociations = (previous.meta.customAssociations ?? []).map(rule => ({
-    ...rule,
-    recordIds: rule.recordIds.filter(id => recordIds.has(id))
-  })).filter(rule => rule.recordIds.length);
-  const merged = {
-    ...imported,
-    cases,
-    meta: {
-      ...imported.meta,
-      ...(previous.meta.displayName ? { displayName: previous.meta.displayName } : {}),
-      ...(previous.meta.categoryGroups ? { categoryGroups: previous.meta.categoryGroups } : {}),
-      ...(customAssociations.length ? { customAssociations } : {}),
-      ...(previous.meta.associationExclusions ? { associationExclusions: previous.meta.associationExclusions } : {})
-    }
-  };
+  const merged = reconcilePersonalDataset(previous, imported);
   return applyCloudSettings(merged, settingsFrom(merged));
 }
 
