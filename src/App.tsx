@@ -179,6 +179,21 @@ function App() {
   const [projectDetailId, setProjectDetailId] = useState('');
   const toastTimer = useRef<number>();
 
+  // Navigation can otherwise leave a focused control from the previous view
+  // alive while React reuses the surrounding layout.  Resetting transient
+  // overlays and focus gives every new page a clean, editable surface.
+  const navigateToView = (nextView: ViewName) => {
+    setImportOpen(false);
+    setPosterOpen(false);
+    setFirstRunOpen(false);
+    setImagePreview(undefined);
+    setView(nextView);
+    requestAnimationFrame(() => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) active.blur();
+    });
+  };
+
   // 如果上一次授权过程中客户端被关闭，下一次启动时只清理 WPS 的
   // 登录 Cookie/缓存，不触碰工作记录、IndexedDB 或本地配置。
   useEffect(() => {
@@ -311,7 +326,7 @@ function App() {
   const syncNow = async () => {
     if (dataset.meta.sourceMode === 'personal-wps') {
       const saved = configuredPersonalWpsFile(dataset);
-      if (!saved) { setView('settings'); notify('当前年度还没有绑定个人 WPS 文件，请在“数据与同步”中重新选择'); return; }
+      if (!saved) { navigateToView('settings'); notify('当前年度还没有绑定个人 WPS 文件，请在“数据与同步”中重新选择'); return; }
       await handlePersonalWpsImport(saved, datasetId(dataset));
       return;
     }
@@ -327,13 +342,14 @@ function App() {
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark"><CalendarDays size={20}/></div><div><strong>工作脉络</strong><span>个人工作记录</span></div></div>
-      <nav aria-label="主导航">{navigation.map(item => { const Icon=item.icon; return <div key={item.id}>{item.group && <p>{item.group}</p>}<button className={view===item.id?'active':''} onClick={()=>setView(item.id)}><Icon size={18}/><span>{item.label}</span>{item.id==='cases'&&<em>{dataset.cases.length}</em>}{item.id==='suggestions'&&<em>{suggestions.length}</em>}</button></div>; })}</nav>
+      <nav aria-label="主导航">{navigation.map(item => { const Icon=item.icon; return <div key={item.id}>{item.group && <p>{item.group}</p>}<button className={view===item.id?'active':''} onClick={()=>navigateToView(item.id)}><Icon size={18}/><span>{item.label}</span>{item.id==='cases'&&<em>{dataset.cases.length}</em>}{item.id==='suggestions'&&<em>{suggestions.length}</em>}</button></div>; })}</nav>
       <div className="source-card"><div className="source-title"><Cloud size={17}/><strong>{dataset.meta.sourceMode==='demo'?'等待连接':'数据源已连接'}</strong></div><p>{dataset.meta.sourceName}<br/>{dataset.meta.sourceMode==='demo'?'可先导入本地工作簿':`已导入 ${dataset.records.length} 条记录`}</p><button onClick={syncNow}><RefreshCw size={15}/><span>{dataset.meta.sourceMode==='personal-wps'?'同步个人 WPS':dataset.meta.sourceMode==='wps'?'立即同步':dataset.meta.sourceMode==='demo'?'连接数据源':'重新导入'}</span></button></div>
     </aside>
     <main>
       <header className="topbar"><div><p>工作记录</p>{view==='overview'&&<h1>{datasetDisplayYear(dataset)} 年工作回顾</h1>}</div><div className="top-actions">{datasets.length > 1 && <label className="dataset-switcher"><span>数据年度</span><select value={datasetId(dataset)} onChange={event => switchDataset(event.target.value)}>{sortDatasets(datasets).map(item => <option key={datasetId(item)} value={datasetId(item)}>{datasetLabel(item)}</option>)}</select></label>}<label className="search"><Search size={16}/><input aria-label="全局搜索" value={search} onChange={event=>setSearch(event.target.value)} onKeyDown={event=>{if(event.key==='Enter')setView('timeline')}} placeholder="搜索事项、跟进或编号"/>{search&&<small>{searchMatchCount}</small>}</label><button className={`privacy-toggle${hideContent ? ' active' : ''}`} onClick={() => setHideContent(value => { if (!value) setSearch(''); return !value; })} title={hideContent ? '显示工作内容' : '隐藏工作内容'} aria-label={hideContent ? '显示工作内容' : '隐藏工作内容'}>{hideContent ? <Eye size={16}/> : <EyeOff size={16}/>}</button><div className="avatar">我</div></div></header>
       {dataset.meta.sourceMode==='demo'&&<div className="notice"><span>当前是示例数据。导入你的工作记录 Excel 后，会在当前浏览器中生成真实时间线和图片。</span><button onClick={()=>setView('settings')}>前往数据与同步</button></div>}
-      {view==='overview'&&<OverviewView dataset={dataset} year={datasetDisplayYear(dataset)} selectedDate={selectedDate} onSelectDate={selectHeatmapDate} onOpenImage={openImage} onNavigate={name=>setView(name as ViewName)} hideContent={hideContent}/>} 
+      <div key={`${view}:${projectDetailId}`} className="view-host">
+      {view==='overview'&&<OverviewView dataset={dataset} year={datasetDisplayYear(dataset)} selectedDate={selectedDate} onSelectDate={selectHeatmapDate} onOpenImage={openImage} onNavigate={name=>navigateToView(name as ViewName)} hideContent={hideContent}/>}
       {view==='timeline'&&<TimelineView dataset={search?{...dataset,records:dataset.records.filter(record=>[record.title,record.caseId,...record.steps.map(step=>step.text)].join(' ').toLowerCase().includes(search.toLowerCase()))}:dataset} onOpenImage={openImage} hideContent={hideContent}/>} 
       {view==='categories'&&<CategoriesView dataset={dataset}/>} 
       {view==='work-front'&&selectedProject&&<ProjectDetailView project={selectedProject} datasets={allDatasets} onBack={()=>setProjectDetailId('')} onOpenImage={openImage} onChangeLifecycle={updateCaseLifecycleAcrossProject} hideContent={hideContent}/>}
@@ -343,6 +359,7 @@ function App() {
       {view==='cases'&&<CasesView dataset={dataset} projects={longTermProjects} onAssignProject={assignCaseProject} onCreateProject={createCaseProject} onChange={applyDataset} onChangeLifecycle={updateCaseLifecycleAcrossProject}/>}
       {view==='suggestions'&&<SuggestionsView suggestions={suggestions} onAccept={accept} onReject={reject}/>} 
       {view==='settings'&&<SettingsView dataset={dataset} datasets={datasets} onImport={()=>setImportOpen(true)} onUpdateDataset={updateStoredDataset} onDeleteDataset={removeStoredDataset} onClear={clear} onExportConfig={exportConfig} onImportConfig={importConfig} onConfigureWps={()=>setFirstRunOpen(true)} onPersonalImport={file => handlePersonalWpsImport(file, dataset.meta.sourceMode === 'personal-wps' && personalFileMatchesDataset(file, dataset) ? datasetId(dataset) : undefined)} onExportAiText={exportAiText} onCopyAiText={copyAiText} onExportPoster={()=>setPosterOpen(true)}/>}
+      </div>
     </main>
     <ImportDialog open={importOpen} onClose={()=>setImportOpen(false)} onImported={handleImported}/>
     <PosterExportDialog open={posterOpen} dataset={dataset} defaultHideContent={hideContent} onClose={()=>setPosterOpen(false)} onSaved={notify}/>

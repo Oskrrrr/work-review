@@ -9,7 +9,9 @@ export function ProjectDetailView({ project, datasets, onBack, onOpenImage, onCh
   const [yearFilter, setYearFilter] = useState('all');
   const all = useMemo<ProjectRecord[]>(() => datasets.flatMap(dataset => dataset.cases.filter(item => item.longTermProjectId === project.id).flatMap(item => dataset.records.filter(record => item.recordIds.includes(record.id)).map(record => ({ record, dataset, caseId: item.id, caseTitle: item.title, lifecycle: item.lifecycle || 'active' })))), [datasets, project.id]);
   const years = useMemo(() => [...new Set(all.map(item => item.record.date.slice(0, 4)))].sort(), [all]);
-  const visible = useMemo(() => all.filter(item => yearFilter === 'all' || item.record.date.startsWith(`${yearFilter}-`)).sort((a, b) => b.record.date.localeCompare(a.record.date) || b.record.sourceRow - a.record.sourceRow), [all, yearFilter]);
+  // Keep the chronology consistent at both levels: older years first, and
+  // older records first within each year.
+  const visible = useMemo(() => all.filter(item => yearFilter === 'all' || item.record.date.startsWith(`${yearFilter}-`)).sort((a, b) => a.record.date.localeCompare(b.record.date) || a.record.sourceRow - b.record.sourceRow), [all, yearFilter]);
   const grouped = useMemo(() => years.filter(year => yearFilter === 'all' || year === yearFilter).map(year => ({ year, records: visible.filter(item => item.record.date.startsWith(`${year}-`)) })).filter(group => group.records.length), [years, yearFilter, visible]);
   const startDate = all.map(item => item.record.date).sort()[0];
   const endDate = all.map(item => item.record.date).sort().at(-1);

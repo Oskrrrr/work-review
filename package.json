@@ -1,7 +1,7 @@
 {
   "name": "wps-worklog-pwa",
   "private": true,
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "个人工作记录与长期事项回顾客户端",
   "author": "Oskrrrr",
   "type": "module",
@@ -47,7 +47,7 @@
     "files": ["dist/**/*", "electron/**/*", "package.json"],
     "extraResources": [{ "from": "vendor/kdocs-cli", "to": "vendor/kdocs-cli", "filter": ["**/*"] }],
     "directories": { "output": "release" },
-    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "artifactName": "工作脉络-${version}-Setup.${ext}" },
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "artifactName": "work-review-${version}-windows-x64-setup.${ext}" },
     "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true }
   },
   "pnpm": {

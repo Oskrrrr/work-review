@@ -12,6 +12,7 @@ describe('case suggestions', () => {
     const dataset:WorkDataset={meta:{sourceName:'x',sheetName:'Sheet1',year:2026,importedAt:'',sourceMode:'local',imageCount:0,warnings:[]},records,cases:[]};
     const next=acceptSuggestion(dataset,suggestions[0]);
     expect(next.cases[0].id).toBe('W-000001');
+    expect(next.cases[0].kind).toBe('periodic');
     expect(next.records.every(item=>item.caseId==='W-000001')).toBe(true);
   });
 

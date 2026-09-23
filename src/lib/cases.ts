@@ -87,7 +87,10 @@ export function acceptSuggestion(dataset: WorkDataset, suggestion: CaseSuggestio
     title: suggestion.left.title.length <= suggestion.right.title.length ? suggestion.left.title : suggestion.right.title,
     recordIds: [suggestion.left.id, suggestion.right.id],
     status: 'confirmed',
-    kind: 'long-term',
+    // New associations start as periodic work.  A user can explicitly
+    // promote them to a long-term item from the case table when the work
+    // really needs to appear on the long-term work front.
+    kind: 'periodic',
     lifecycle: 'active',
     createdAt: new Date().toISOString()
   };
@@ -100,7 +103,7 @@ export function createManualCase(dataset: WorkDataset, recordIds: string[], titl
   if (selected.length < 2) return dataset;
   const caseId = nextCaseId(dataset.cases);
   const caseTitle = title?.trim() || [...selected].sort((a, b) => a.title.length - b.title.length)[0].title;
-  const caseItem: CaseItem = { id: caseId, title: caseTitle, recordIds: selected.map(record => record.id), status: 'confirmed', kind: 'long-term', lifecycle: 'active', createdAt: new Date().toISOString() };
+  const caseItem: CaseItem = { id: caseId, title: caseTitle, recordIds: selected.map(record => record.id), status: 'confirmed', kind: 'periodic', lifecycle: 'active', createdAt: new Date().toISOString() };
   const selectedIds = new Set(caseItem.recordIds);
   return renumberCases({ ...dataset, cases: [...dataset.cases, caseItem], records: dataset.records.map(record => selectedIds.has(record.id) ? { ...record, caseId } : record) });
 }

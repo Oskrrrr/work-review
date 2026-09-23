@@ -19,6 +19,7 @@ nav button em { margin-left:auto; font-style:normal; font-size:12px; color:#8994
 .source-card p { margin:7px 0 12px; color:var(--muted); font-size:12px; line-height:1.5; }
 .source-card button,.import-button { border:0; border-radius:9px; background:var(--green); color:#fff; padding:9px 11px; display:flex; align-items:center; justify-content:center; gap:7px; font-size:13px; }
 main { min-width:0; padding:26px 30px 38px; }
+.view-host { min-width:0; }
 .topbar { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:18px; }
 .topbar p { margin:0 0 4px; font-size:13px; color:var(--muted); }
 h1 { margin:0; font-size:27px; letter-spacing:-.04em; }
