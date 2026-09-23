@@ -64,6 +64,8 @@ export interface DatasetMeta {
   categoryGroups?: Record<string, string[]>;
   customAssociations?: CustomAssociationRule[];
   associationExclusions?: string[];
+  /** Stable fingerprints of records that the user has already confirmed together. */
+  associationHistory?: string[];
 }
 
 export interface CustomAssociationRule {

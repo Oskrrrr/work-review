@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ImportDialog } from './components/ImportDialog';
 import { FirstRunDialog } from './components/FirstRunDialog';
 import { PosterExportDialog } from './components/PosterExportDialog';
-import { acceptSuggestion, buildCaseSuggestions, mergeCases, renumberCases, type CaseSuggestion } from './lib/cases';
+import { acceptSuggestion, associationRecordKey, buildCaseSuggestions, mergeCases, renumberCases, type CaseSuggestion } from './lib/cases';
 import { clearLocalData, deleteDataset, loadDataset, loadDatasets, saveDataset, saveImages } from './lib/storage';
 import { getCloudDataset, getCloudSettings, hasCloudApi, saveCloudCases, saveCloudSettings, WPS_AUTH_PENDING_KEY, PERSONAL_WPS_FILE_KEY, type UserSettings, triggerCloudSync, downloadPersonalWpsFile, type PersonalWpsFile, loginPersonalWps } from './lib/api';
 import { demoDataset } from './demo';
@@ -108,7 +108,8 @@ function loadLongTermProjects() {
 
 // WPS 同步只更新原始记录；本机保存的人工关联会在刷新后的记录中重新对账。
 function settingsFrom(dataset: WorkDataset): UserSettings {
-  return { cases: dataset.cases, categoryGroups: dataset.meta.categoryGroups ?? {}, customAssociations: dataset.meta.customAssociations ?? [], associationExclusions: dataset.meta.associationExclusions ?? [] };
+  const derivedHistory = dataset.cases.flatMap(item => item.recordIds.map(id => dataset.records.find(record => record.id === id)).filter((record): record is WorkDataset['records'][number] => Boolean(record)).map(associationRecordKey));
+  return { cases: dataset.cases, categoryGroups: dataset.meta.categoryGroups ?? {}, customAssociations: dataset.meta.customAssociations ?? [], associationExclusions: dataset.meta.associationExclusions ?? [], associationHistory: [...new Set([...(dataset.meta.associationHistory ?? []), ...derivedHistory])] };
 }
 
 function applyCloudSettings(dataset: WorkDataset, settings?: Partial<UserSettings>) {
@@ -116,7 +117,7 @@ function applyCloudSettings(dataset: WorkDataset, settings?: Partial<UserSetting
   const cases = settings.cases ?? dataset.cases;
   const caseByRecord = new Map(cases.flatMap(item => item.recordIds.map(recordId => [recordId, item] as const)));
   const records = dataset.records.map(record => { const item = caseByRecord.get(record.id); return item ? { ...record, caseId: item.id, effectiveCategory: item.categoryOverride || record.originalCategory } : record; });
-  return { ...dataset, cases, records, meta: { ...dataset.meta, ...(settings.categoryGroups ? { categoryGroups: settings.categoryGroups } : {}), ...(settings.customAssociations ? { customAssociations: settings.customAssociations } : {}), ...(settings.associationExclusions ? { associationExclusions: settings.associationExclusions } : {}) } };
+  return { ...dataset, cases, records, meta: { ...dataset.meta, ...(settings.categoryGroups ? { categoryGroups: settings.categoryGroups } : {}), ...(settings.customAssociations ? { customAssociations: settings.customAssociations } : {}), ...(settings.associationExclusions ? { associationExclusions: settings.associationExclusions } : {}), ...(settings.associationHistory ? { associationHistory: settings.associationHistory } : {}) } };
 }
 
 function mergeLocalUserState(remote: WorkDataset, local?: WorkDataset, cloudSettings?: Partial<UserSettings>) {
@@ -130,9 +131,9 @@ function mergeLocalUserState(remote: WorkDataset, local?: WorkDataset, cloudSett
     ...remote,
     records,
     cases: local.cases.length ? [...local.cases, ...recoveredCases] : (recoveredCases.length ? recoveredCases : remote.cases),
-    meta: { ...remote.meta, ...(local.meta.categoryGroups ? { categoryGroups: local.meta.categoryGroups } : {}), ...(local.meta.customAssociations ? { customAssociations: local.meta.customAssociations } : {}), ...(local.meta.associationExclusions ? { associationExclusions: local.meta.associationExclusions } : {}) }
+    meta: { ...remote.meta, ...(local.meta.categoryGroups ? { categoryGroups: local.meta.categoryGroups } : {}), ...(local.meta.customAssociations ? { customAssociations: local.meta.customAssociations } : {}), ...(local.meta.associationExclusions ? { associationExclusions: local.meta.associationExclusions } : {}), ...(local.meta.associationHistory ? { associationHistory: local.meta.associationHistory } : {}) }
   };
-  const localHasSettings = Boolean(local && (local.cases.length || local.meta.categoryGroups || local.meta.customAssociations || local.meta.associationExclusions));
+  const localHasSettings = Boolean(local && (local.cases.length || local.meta.categoryGroups || local.meta.customAssociations || local.meta.associationExclusions || local.meta.associationHistory));
   return applyCloudSettings(merged, localHasSettings ? settingsFrom(local!) : cloudSettings);
 }
 
@@ -194,7 +195,7 @@ function App() {
   })(); }, []);
   useEffect(() => { if (hydrated && dataset.meta.sourceMode !== 'demo') saveDataset(dataset); }, [dataset,hydrated]);
   useEffect(() => { localStorage.setItem(LONG_TERM_PROJECTS_KEY, JSON.stringify(longTermProjects)); }, [longTermProjects]);
-  const suggestions = useMemo(() => buildCaseSuggestions(dataset.records,rejectedSuggestions,dataset.meta.associationExclusions ?? []),[dataset.records,rejectedSuggestions,dataset.meta.associationExclusions]);
+  const suggestions = useMemo(() => buildCaseSuggestions(dataset.records,rejectedSuggestions,dataset.meta.associationExclusions ?? [],dataset.cases,dataset.meta.associationHistory ?? []),[dataset.records,dataset.cases,rejectedSuggestions,dataset.meta.associationExclusions,dataset.meta.associationHistory]);
 
   const notify = (message:string) => { setToast(message); window.clearTimeout(toastTimer.current); toastTimer.current=window.setTimeout(()=>setToast(''),2600); };
   const datasetId = datasetIdOf;
@@ -301,10 +302,48 @@ function App() {
       notify(reason instanceof Error ? reason.message : '个人 WPS 文件导入失败');
     }
   };
-  const exportConfig = () => { const payload = { format: 'work-review-settings', version: 1, exportedAt: new Date().toISOString(), sourceName: dataset.meta.sourceName, settings: settingsFrom(dataset) }; const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `工作配置-${dataset.meta.year}-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(url); notify('配置已保存到本地'); };
+  const exportConfig = () => {
+    const all = [...datasets, dataset].filter((item, index, list) => list.findIndex(candidate => datasetIdOf(candidate) === datasetIdOf(item)) === index && item.meta.sourceMode !== 'demo');
+    const payload = {
+      format: 'work-review-settings', version: 2, exportedAt: new Date().toISOString(), activeDatasetId: datasetId(dataset),
+      datasets: all.map(item => ({ id: datasetId(item), meta: { datasetId: item.meta.datasetId, displayName: item.meta.displayName, sourceName: item.meta.sourceName, sheetName: item.meta.sheetName, year: item.meta.year, sourceMode: item.meta.sourceMode, sourceFileId: item.meta.sourceFileId, sourceDriveId: item.meta.sourceDriveId }, settings: settingsFrom(item) })),
+      longTermProjects,
+      rejectedSuggestions,
+      personalWpsFiles: personalWpsFileMap(),
+      selectedPersonalWpsFile: (() => { try { return JSON.parse(localStorage.getItem(PERSONAL_WPS_FILE_KEY) || 'null'); } catch { return null; } })(),
+      hideContent
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `工作配置-完整备份-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(url); notify(`已保存完整配置备份（${all.length} 个数据集）`);
+  };
   const exportAiText = () => { const markdown = buildAiWorklogMarkdown(dataset); const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${dataset.meta.year}年工作记录-AI年度报告素材.md`; link.click(); URL.revokeObjectURL(url); notify('AI 年度报告素材已导出'); };
   const copyAiText = async () => { const markdown = buildAiWorklogMarkdown(dataset); try { if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(markdown); else { const textarea = document.createElement('textarea'); textarea.value = markdown; textarea.style.position = 'fixed'; textarea.style.opacity = '0'; document.body.appendChild(textarea); textarea.select(); if (!document.execCommand('copy')) throw new Error('copy failed'); textarea.remove(); } notify('AI 年度报告素材已复制，可直接粘贴给 AI'); } catch { notify('复制失败，请先导出文字文件'); } };
-  const importConfig = async (file: File) => { try { const payload = JSON.parse(await file.text()) as { format?: string; settings?: Partial<UserSettings> }; const settings = payload.settings; if (payload.format !== 'work-review-settings' || !settings || !Array.isArray(settings.cases)) throw new Error('配置文件格式不正确'); const merged = renumberCases(applyCloudSettings(dataset, settings)); applyDataset(merged); notify(`已导入 ${merged.cases.length} 个事项配置`); } catch (error) { notify(error instanceof Error ? error.message : '配置文件读取失败'); } };
+  const importConfig = async (file: File) => {
+    try {
+      const payload = JSON.parse(await file.text()) as { format?: string; version?: number; settings?: Partial<UserSettings>; datasets?: Array<{ id?: string; meta?: Partial<WorkDataset['meta']>; settings?: Partial<UserSettings> }>; activeDatasetId?: string; longTermProjects?: LongTermProject[]; rejectedSuggestions?: string[]; personalWpsFiles?: Record<string, PersonalWpsFile>; selectedPersonalWpsFile?: PersonalWpsFile | null; hideContent?: boolean };
+      if (payload.format !== 'work-review-settings') throw new Error('配置文件格式不正确');
+      if (payload.version === 2 && Array.isArray(payload.datasets)) {
+        const source = datasets.some(item => datasetId(item) === datasetId(dataset)) ? datasets : [...datasets, dataset];
+        const restored = source.map(item => {
+          const entry = payload.datasets?.find(candidate => candidate.id === datasetId(item) || (candidate.meta?.sourceName === item.meta.sourceName && candidate.meta?.year === item.meta.year));
+          if (!entry?.settings) return item;
+          const next = applyCloudSettings(item, entry.settings);
+          return { ...next, meta: { ...next.meta, ...(entry.meta?.displayName !== undefined ? { displayName: entry.meta.displayName } : {}), ...(entry.meta?.year ? { year: entry.meta.year } : {}), ...(entry.meta?.sourceFileId ? { sourceFileId: entry.meta.sourceFileId } : {}), ...(entry.meta?.sourceDriveId ? { sourceDriveId: entry.meta.sourceDriveId } : {}) } };
+        });
+        const currentId = payload.activeDatasetId && restored.some(item => datasetId(item) === payload.activeDatasetId) ? payload.activeDatasetId : datasetId(dataset);
+        const nextCurrent = restored.find(item => datasetId(item) === currentId) ?? restored[0] ?? dataset;
+        setDataset(nextCurrent); setDatasets(sortDatasets(restored.filter(item => item.meta.sourceMode !== 'demo'))); void Promise.all(restored.filter(item => item.meta.sourceMode !== 'demo').map(item => saveDataset(item)));
+        if (Array.isArray(payload.longTermProjects)) { setLongTermProjects(payload.longTermProjects); localStorage.setItem(LONG_TERM_PROJECTS_KEY, JSON.stringify(payload.longTermProjects)); }
+        if (Array.isArray(payload.rejectedSuggestions)) { setRejectedSuggestions(payload.rejectedSuggestions); localStorage.setItem('rejected-suggestions', JSON.stringify(payload.rejectedSuggestions)); }
+        if (payload.personalWpsFiles && typeof payload.personalWpsFiles === 'object') localStorage.setItem(PERSONAL_WPS_FILE_MAP_KEY, JSON.stringify(payload.personalWpsFiles));
+        if (payload.selectedPersonalWpsFile) localStorage.setItem(PERSONAL_WPS_FILE_KEY, JSON.stringify(payload.selectedPersonalWpsFile));
+        if (typeof payload.hideContent === 'boolean') setHideContent(payload.hideContent);
+        notify(`已导入完整配置：${restored.filter(item => item.meta.sourceMode !== 'demo').length} 个数据集`);
+        return;
+      }
+      const settings = payload.settings;
+      if (!settings || !Array.isArray(settings.cases)) throw new Error('配置文件格式不正确'); const merged = renumberCases(applyCloudSettings(dataset, settings)); applyDataset(merged); notify(`已导入 ${merged.cases.length} 个事项配置`);
+    } catch (error) { notify(error instanceof Error ? error.message : '配置文件读取失败'); }
+  };
   const accept = (suggestion:CaseSuggestion) => { const next=acceptSuggestion(dataset,suggestion); applyDataset(next); notify(`已生成 ${next.cases.at(-1)?.id}`); };
   const reject = (suggestion:CaseSuggestion) => { const next=[...rejectedSuggestions,suggestion.id]; setRejectedSuggestions(next); localStorage.setItem('rejected-suggestions',JSON.stringify(next)); notify('已忽略这条关联建议'); };
   const clear = async () => { if (!window.confirm('确定清除当前浏览器中的全部年度工作记录和图片吗？原始 Excel 不会受到影响。')) return; await clearLocalData(); setLongTermProjects([]); localStorage.removeItem(LONG_TERM_PROJECTS_KEY); setDatasets([]); setDataset(demoDataset); setSelectedDate(newestDate(demoDataset)); notify('本地数据已清除'); };

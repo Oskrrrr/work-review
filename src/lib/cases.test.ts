@@ -21,6 +21,12 @@ describe('case suggestions', () => {
     expect(buildCaseSuggestions(records, [], ['休息'])).toHaveLength(0);
   });
 
+  it('does not suggest records already covered by a confirmed case after a refresh', () => {
+    const records=[record('new-a','2026-01-04','楼道杂物清理'),record('new-b','2026-01-07','楼道杂物处理进展')];
+    const cases=[{id:'W-000001',title:'楼道杂物',recordIds:['old-a','old-b'],status:'confirmed' as const,createdAt:''}];
+    expect(buildCaseSuggestions(records, [], [], cases, ['2026-01-04|楼道杂物清理|物业管理', '2026-01-07|楼道杂物处理进展|物业管理'])).toHaveLength(0);
+  });
+
   it('can cancel an accidental association without deleting source records', () => {
     const records=[record('a','2026-01-04','事项 A'),record('b','2026-01-07','事项 A 进展')];
     const dataset:WorkDataset={meta:{sourceName:'x',sheetName:'Sheet1',year:2026,importedAt:'',sourceMode:'local',imageCount:0,warnings:[]},records,cases:[{id:'W-000001',title:'事项 A',recordIds:['a','b'],status:'confirmed',createdAt:''}]};

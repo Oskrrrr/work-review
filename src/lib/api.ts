@@ -54,7 +54,7 @@ export async function saveCloudCases(dataset: WorkDataset) {
   return request<{ ok: boolean }>('/api/cases', { method: 'PUT', body: JSON.stringify({ cases: dataset.cases }) });
 }
 
-export type UserSettings = Pick<WorkDataset['meta'], 'categoryGroups' | 'customAssociations' | 'associationExclusions'> & { cases: WorkDataset['cases'] };
+export type UserSettings = Pick<WorkDataset['meta'], 'categoryGroups' | 'customAssociations' | 'associationExclusions' | 'associationHistory'> & { cases: WorkDataset['cases'] };
 
 export async function getCloudSettings() {
   return request<Partial<UserSettings>>('/api/settings');

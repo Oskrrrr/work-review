@@ -54,7 +54,15 @@
 
 ### Windows 客户端
 
-从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.7.4-windows-x64-setup.exe`。
+从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.7.5-windows-x64-setup.exe`。
+
+### 0.7.5 更新
+
+- 修复个人 WPS 更新后，已经确认的关联再次出现在“待确认关联”的问题。
+- 为已确认工作增加稳定关联指纹，记录 ID 变化后仍能识别为同一项工作。
+- 配置备份升级为完整备份：覆盖所有已导入年度数据集，而非只保存当前数据集。
+- 备份新增年度显示名称、数据年度、事项编号、分类大类、自定义关联、排除词、关联历史、跨年度长期主档、个人 WPS 文件绑定、待确认处理记录和隐藏内容偏好。
+- 保留旧版配置文件的导入兼容；备份不包含原始工作记录、图片和登录密钥。
 
 ### 0.7.4 更新
 

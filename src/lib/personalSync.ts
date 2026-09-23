@@ -1,3 +1,4 @@
+import { associationRecordKey } from './cases';
 import type { CaseItem, CustomAssociationRule, WorkDataset, WorkRecord } from '../types';
 
 function normalize(value: string) {
@@ -109,12 +110,14 @@ export function reconcilePersonalDataset(previous: WorkDataset, imported: WorkDa
       ? { ...record, caseId: item.id, effectiveCategory: item.categoryOverride || record.originalCategory }
       : record;
   });
+  const remappedHistory = cases.flatMap(item => item.recordIds.map(recordId => newRecords.find(record => record.id === recordId)).filter((record): record is WorkRecord => Boolean(record)).map(associationRecordKey));
   const meta = {
     ...imported.meta,
     ...(previous.meta.displayName ? { displayName: previous.meta.displayName } : {}),
     ...(previous.meta.categoryGroups ? { categoryGroups: previous.meta.categoryGroups } : {}),
     ...(customAssociations.length ? { customAssociations } : {}),
-    ...(previous.meta.associationExclusions ? { associationExclusions: previous.meta.associationExclusions } : {})
+    ...(previous.meta.associationExclusions ? { associationExclusions: previous.meta.associationExclusions } : {}),
+    ...(previous.meta.associationHistory || remappedHistory.length ? { associationHistory: [...new Set([...(previous.meta.associationHistory || []), ...remappedHistory])] } : {})
   };
   return { ...imported, records, cases, meta };
 }

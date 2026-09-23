@@ -12,6 +12,12 @@ function normalize(text: string) {
   return text.toLowerCase().replace(/[\s，。、“”‘’（）()：:；;·,！？!?]/g, '').replace(/(联系|协调|处理|跟进|问题|情况|居民|物业|社区)/g, '');
 }
 
+/** A content fingerprint that survives WPS-generated record id changes. */
+export function associationRecordKey(record: WorkRecord) {
+  const stable = (text: string) => text.toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, '');
+  return [record.date, stable(record.title), stable(record.originalCategory)].join('|');
+}
+
 function workContent(record: WorkRecord) {
   return [record.title, ...record.steps.filter(step => step.kind === 'text' && step.text).map(step => step.text!)].join(' ');
 }
@@ -40,15 +46,21 @@ function jaccard(left: Set<string>, right: Set<string>) {
   return union ? intersection / union : 0;
 }
 
-export function buildCaseSuggestions(records: WorkRecord[], rejectedIds: string[] = [], excludedKeywords: string[] = []) {
+export function buildCaseSuggestions(records: WorkRecord[], rejectedIds: string[] = [], excludedKeywords: string[] = [], knownCases: CaseItem[] = [], associationHistory: string[] = []) {
   const suggestions: CaseSuggestion[] = [];
+  const knownRecordIds = new Set(knownCases.flatMap(item => item.recordIds));
+  const recordsById = new Map(records.map(record => [record.id, record]));
+  const knownKeys = new Set([
+    ...associationHistory,
+    ...knownCases.flatMap(item => item.recordIds.map(id => recordsById.get(id)).filter((record): record is WorkRecord => Boolean(record)).map(associationRecordKey))
+  ]);
   const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
   for (let leftIndex = 0; leftIndex < sorted.length; leftIndex += 1) {
     const left = sorted[leftIndex];
-    if (left.caseId || isNonWorkRecord(left, excludedKeywords)) continue;
+    if (left.caseId || knownRecordIds.has(left.id) || knownKeys.has(associationRecordKey(left)) || isNonWorkRecord(left, excludedKeywords)) continue;
     for (let rightIndex = leftIndex + 1; rightIndex < Math.min(sorted.length, leftIndex + 80); rightIndex += 1) {
       const right = sorted[rightIndex];
-      if (right.caseId || isNonWorkRecord(right, excludedKeywords) || left.date === right.date) continue;
+      if (right.caseId || knownRecordIds.has(right.id) || knownKeys.has(associationRecordKey(right)) || isNonWorkRecord(right, excludedKeywords) || left.date === right.date) continue;
       const titleScore = jaccard(grams(left.title), grams(right.title));
       const contentScore = jaccard(grams(workContent(left)), grams(workContent(right)));
       const categoryBonus = left.originalCategory === right.originalCategory ? 0.08 : 0;
@@ -95,7 +107,8 @@ export function acceptSuggestion(dataset: WorkDataset, suggestion: CaseSuggestio
     createdAt: new Date().toISOString()
   };
   const recordIds = new Set(caseItem.recordIds);
-  return renumberCases({ ...dataset, cases: [...dataset.cases, caseItem], records: dataset.records.map(record => recordIds.has(record.id) ? { ...record, caseId } : record) });
+  const history = [...new Set([...(dataset.meta.associationHistory || []), ...[suggestion.left, suggestion.right].map(associationRecordKey)])];
+  return renumberCases({ ...dataset, cases: [...dataset.cases, caseItem], records: dataset.records.map(record => recordIds.has(record.id) ? { ...record, caseId } : record), meta: { ...dataset.meta, associationHistory: history } });
 }
 
 export function createManualCase(dataset: WorkDataset, recordIds: string[], title?: string): WorkDataset {
@@ -105,7 +118,8 @@ export function createManualCase(dataset: WorkDataset, recordIds: string[], titl
   const caseTitle = title?.trim() || [...selected].sort((a, b) => a.title.length - b.title.length)[0].title;
   const caseItem: CaseItem = { id: caseId, title: caseTitle, recordIds: selected.map(record => record.id), status: 'confirmed', kind: 'periodic', lifecycle: 'active', createdAt: new Date().toISOString() };
   const selectedIds = new Set(caseItem.recordIds);
-  return renumberCases({ ...dataset, cases: [...dataset.cases, caseItem], records: dataset.records.map(record => selectedIds.has(record.id) ? { ...record, caseId } : record) });
+  const history = [...new Set([...(dataset.meta.associationHistory || []), ...selected.map(associationRecordKey)])];
+  return renumberCases({ ...dataset, cases: [...dataset.cases, caseItem], records: dataset.records.map(record => selectedIds.has(record.id) ? { ...record, caseId } : record), meta: { ...dataset.meta, associationHistory: history } });
 }
 
 export function updateCaseKind(dataset: WorkDataset, caseId: string, kind: CaseKind): WorkDataset {
@@ -167,11 +181,12 @@ export function mergeCases(dataset: WorkDataset, caseIds: string[]): WorkDataset
     };
   });
   const customAssociations = dataset.meta.customAssociations?.map(rule => selectedSet.has(rule.caseId) ? { ...rule, caseId: destination.id } : rule);
+  const history = [...new Set([...(dataset.meta.associationHistory || []), ...selected.flatMap(item => item.recordIds.map(id => dataset.records.find(record => record.id === id)).filter((record): record is WorkRecord => Boolean(record)).map(associationRecordKey))])];
   const next = {
     ...dataset,
     cases: [merged, ...dataset.cases.filter(item => !selectedSet.has(item.id))],
     records,
-    meta: customAssociations ? { ...dataset.meta, customAssociations } : dataset.meta
+    meta: { ...dataset.meta, ...(customAssociations ? { customAssociations } : {}), associationHistory: history }
   };
   return renumberCases(next);
 }
