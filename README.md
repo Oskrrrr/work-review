@@ -54,7 +54,7 @@
 
 ### Windows 客户端
 
-从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.6.1-windows-x64-setup.exe`。
+从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.7.0-windows-x64-setup.exe`。
 
 ### 跨年度长期事项
 

@@ -277,6 +277,12 @@ select:not([multiple]):disabled { cursor:not-allowed; opacity:.62; background-co
 .case-detail-status { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
 .case-detail-status span { display:inline-flex; align-items:center; padding:5px 8px; border-radius:999px; background:#edf7f0; color:var(--green); font-size:11px; }
 .case-detail-status span.completed { background:#f1f4f2; color:#6e7d73; }
+@media (min-width:1051px) { .case-layout { grid-template-columns:minmax(0,1fr); }.case-detail { position:static; } }
+.case-layout .table-wrap table { min-width:1060px; table-layout:auto; }
+.case-layout .table-wrap th,.case-layout .table-wrap td { vertical-align:middle; white-space:nowrap; }
+.case-layout .table-wrap th:nth-child(2),.case-layout .table-wrap td:nth-child(2) { min-width:220px; white-space:normal; }
+.case-layout .table-wrap th:nth-child(6),.case-layout .table-wrap td:nth-child(6) { min-width:225px; }
+.case-layout .table-wrap td:nth-child(4),.case-layout .table-wrap td:nth-child(5),.case-layout .table-wrap td:nth-child(7) { min-width:135px; }
 @media (max-width:1050px) { .front-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:700px) { .front-kpis { grid-template-columns:1fr 1fr; }.front-card-actions { justify-content:flex-start; margin-top:8px; }.front-work-card-head { align-items:flex-start; flex-direction:column; }.case-status-button { white-space:nowrap; } }
 .case-project-picker { display:flex; align-items:center; gap:5px; min-width:170px; }
@@ -286,6 +292,33 @@ select:not([multiple]):disabled { cursor:not-allowed; opacity:.62; background-co
 .case-project-muted { color:#97a39a; font-size:11px; white-space:nowrap; }
 .front-cross-year { display:flex; flex-wrap:wrap; gap:7px 14px; margin-top:10px; padding:9px 11px; border-radius:9px; background:#edf8f1; color:#39765a; font-size:11px; }
 .front-cross-year span:first-child { color:var(--green); font-weight:650; }
+.front-project-index { padding:18px 20px; }
+.front-project-index .panel-header { margin-bottom:10px; }
+.front-project-index .panel-header>span { color:var(--muted); font-size:12px; }
+.front-project-list { display:grid; gap:8px; }
+.front-project-item { border:1px solid #dfeae2; border-radius:10px; background:#fbfefc; overflow:hidden; }
+.front-project-item.expanded { border-color:#a9d3b7; background:#f4fbf6; }
+.front-project-summary { width:100%; display:flex; align-items:center; gap:10px; padding:12px 13px; border:0; background:transparent; color:var(--ink); text-align:left; }
+.front-project-summary:hover { background:#eef8f1; }
+.front-project-icon { width:30px; height:30px; flex:none; display:grid; place-items:center; border-radius:8px; background:#e4f3e9; color:var(--green); }
+.front-project-main { display:grid; gap:4px; min-width:0; flex:1; }
+.front-project-main strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.front-project-main small { color:var(--muted); font-size:11px; }
+.front-project-state { flex:none; padding:4px 8px; border-radius:999px; background:#eaf7ee; color:var(--green); font-size:11px; }
+.front-project-state.completed { background:#f0f3f1; color:#718078; }
+.front-project-details { display:grid; gap:6px; margin:0 13px 12px 53px; padding:11px 12px; border-top:1px solid #dce9e0; }
+.front-project-details div { display:grid; grid-template-columns:90px minmax(0,1fr); gap:10px; font-size:11px; }
+.front-project-details time { color:var(--green); font-variant-numeric:tabular-nums; }
+.front-project-details span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#52635a; }
+.front-expand-button { display:inline-flex; align-items:center; gap:4px; min-height:30px; padding:0 8px; border:1px solid #b9d8c4; border-radius:8px; background:#fff; color:#247557; font:inherit; font-size:11px; cursor:pointer; }
+.front-expand-button:hover { background:#edf8f1; }
+.front-work-card.expanded { border-color:#a9d3b7; }
+.front-full-timeline { display:grid; gap:8px; margin-top:14px; padding:13px 0 0; border-top:1px solid var(--line); }
+.front-full-timeline>div { display:grid; grid-template-columns:92px minmax(0,1fr); gap:12px; }
+.front-full-timeline time { color:var(--green); font-size:11px; font-variant-numeric:tabular-nums; }
+.front-full-timeline div div { display:grid; gap:3px; min-width:0; }
+.front-full-timeline strong { font-size:12px; line-height:1.45; }
+.front-full-timeline span { color:var(--muted); font-size:11px; line-height:1.5; }
 @media (max-width:700px) { .case-project-picker { min-width:180px; } }
 .project-dialog { width:min(480px,100%); }
 .project-dialog h2 { margin-top:16px; }

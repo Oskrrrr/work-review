@@ -241,6 +241,29 @@ function App() {
     assignCaseProject(caseId, project.id);
     notify(`已建立跨年度长期事项“${normalized}”`);
   };
+  const updateCaseLifecycleAcrossProject = (caseId: string, lifecycle: 'active' | 'completed') => {
+    const target = dataset.cases.find(item => item.id === caseId);
+    const projectId = target?.longTermProjectId;
+    if (!projectId) { applyDataset({ ...dataset, cases: dataset.cases.map(item => item.id === caseId ? { ...item, lifecycle, ...(lifecycle === 'completed' ? { completedAt: new Date().toISOString() } : { completedAt: undefined }) } : item) }); return; }
+    const currentId = datasetId(dataset);
+    const source = datasets.some(item => datasetId(item) === currentId) ? datasets : [...datasets, dataset];
+    const stamp = new Date().toISOString();
+    const nextAll = source.map(item => ({ ...item, cases: item.cases.map(caseItem => caseItem.longTermProjectId === projectId ? { ...caseItem, lifecycle, ...(lifecycle === 'completed' ? { completedAt: stamp } : { completedAt: undefined }) } : caseItem) }));
+    const nextCurrent = nextAll.find(item => datasetId(item) === currentId) ?? dataset;
+    setDataset(nextCurrent);
+    setDatasets(sortDatasets(nextAll.filter(item => item.meta.sourceMode !== 'demo')));
+    nextAll.forEach(item => { if (item.meta.sourceMode !== 'demo') void saveDataset(item); });
+    notify(lifecycle === 'completed' ? '已将同一跨年度主档的事项全部标记为已办结' : '已重新打开同一跨年度主档的事项');
+  };
+  const updateCategoryGroups = (groups: Record<string, string[]>) => {
+    const currentId = datasetId(dataset);
+    const source = datasets.some(item => datasetId(item) === currentId) ? datasets : [...datasets, dataset];
+    const nextAll = source.map(item => ({ ...item, meta: { ...item.meta, categoryGroups: groups } }));
+    const nextCurrent = nextAll.find(item => datasetId(item) === currentId) ?? { ...dataset, meta: { ...dataset.meta, categoryGroups: groups } };
+    setDataset(nextCurrent);
+    setDatasets(sortDatasets(nextAll.filter(item => item.meta.sourceMode !== 'demo')));
+    nextAll.forEach(item => { if (item.meta.sourceMode !== 'demo') void saveDataset(item); });
+  };
   const handleImported = async (result:ImportResult) => { await saveImages(result.images, datasetId(result.dataset)); applyDataset(result.dataset); setSelectedDate(newestDate(result.dataset)); notify(`已保存 ${result.dataset.meta.year} 年数据：${result.dataset.records.length} 条记录和 ${result.dataset.meta.imageCount} 个图片引用`); };
   const handlePersonalWpsImport = async (file: PersonalWpsFile, targetDatasetId?: string) => {
     notify('正在下载个人 WPS 工作记录…');
@@ -309,10 +332,10 @@ function App() {
       {view==='overview'&&<OverviewView dataset={dataset} year={datasetDisplayYear(dataset)} selectedDate={selectedDate} onSelectDate={selectHeatmapDate} onOpenImage={openImage} onNavigate={name=>setView(name as ViewName)} hideContent={hideContent}/>} 
       {view==='timeline'&&<TimelineView dataset={search?{...dataset,records:dataset.records.filter(record=>[record.title,record.caseId,...record.steps.map(step=>step.text)].join(' ').toLowerCase().includes(search.toLowerCase()))}:dataset} onOpenImage={openImage} hideContent={hideContent}/>} 
       {view==='categories'&&<CategoriesView dataset={dataset}/>} 
-      {view==='work-front'&&<WorkFrontView dataset={dataset} datasets={datasets} projects={longTermProjects} onOpenCase={()=>setView('cases')} onChange={applyDataset}/>}
-      {view==='group-editor'&&<GroupEditorView dataset={dataset} onChange={applyDataset}/>} 
+      {view==='work-front'&&<WorkFrontView dataset={dataset} datasets={datasets} projects={longTermProjects} onOpenCase={()=>setView('cases')} onChange={applyDataset} onChangeLifecycle={updateCaseLifecycleAcrossProject}/>}
+      {view==='group-editor'&&<GroupEditorView dataset={dataset} datasets={datasets} onChange={applyDataset} onChangeGroups={updateCategoryGroups}/>}
       {view==='custom-association'&&<CustomAssociationView dataset={dataset} onChange={applyDataset}/>} 
-      {view==='cases'&&<CasesView dataset={dataset} projects={longTermProjects} onAssignProject={assignCaseProject} onCreateProject={createCaseProject} onChange={applyDataset}/>}
+      {view==='cases'&&<CasesView dataset={dataset} projects={longTermProjects} onAssignProject={assignCaseProject} onCreateProject={createCaseProject} onChange={applyDataset} onChangeLifecycle={updateCaseLifecycleAcrossProject}/>}
       {view==='suggestions'&&<SuggestionsView suggestions={suggestions} onAccept={accept} onReject={reject}/>} 
       {view==='settings'&&<SettingsView dataset={dataset} datasets={datasets} onImport={()=>setImportOpen(true)} onUpdateDataset={updateStoredDataset} onDeleteDataset={removeStoredDataset} onClear={clear} onExportConfig={exportConfig} onImportConfig={importConfig} onConfigureWps={()=>setFirstRunOpen(true)} onPersonalImport={file => handlePersonalWpsImport(file, dataset.meta.sourceMode === 'personal-wps' && personalFileMatchesDataset(file, dataset) ? datasetId(dataset) : undefined)} onExportAiText={exportAiText} onCopyAiText={copyAiText} onExportPoster={()=>setPosterOpen(true)}/>}
     </main>

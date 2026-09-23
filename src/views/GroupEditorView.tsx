@@ -2,15 +2,15 @@ import { useMemo, useState } from 'react';
 import { Check, Pencil, Trash2, X } from 'lucide-react';
 import type { WorkDataset } from '../types';
 
-export function GroupEditorView({ dataset, onChange }: { dataset: WorkDataset; onChange: (dataset: WorkDataset) => void }) {
+export function GroupEditorView({ dataset, datasets, onChangeGroups, onChange }: { dataset: WorkDataset; datasets: WorkDataset[]; onChangeGroups?: (groups: Record<string, string[]>) => void; onChange: (dataset: WorkDataset) => void }) {
   const [selectedGroup, setSelectedGroup] = useState('');
   const [newGroup, setNewGroup] = useState('');
   const [editingGroup, setEditingGroup] = useState('');
   const [editingName, setEditingName] = useState('');
-  const categories = useMemo(() => [...new Set(dataset.records.map(record => record.originalCategory))].sort((a, b) => a.localeCompare(b, 'zh-CN')), [dataset.records]);
+  const categories = useMemo(() => [...new Set((datasets.length ? datasets : [dataset]).flatMap(item => item.records.map(record => record.originalCategory)))].sort((a, b) => a.localeCompare(b, 'zh-CN')), [datasets, dataset]);
   const groups = dataset.meta.categoryGroups ?? {};
   const categoryOwners = useMemo(() => Object.entries(groups).reduce<Record<string, string>>((owners, [groupName, members]) => { members.forEach(category => { owners[category] = groupName; }); return owners; }, {}), [groups]);
-  const updateGroups = (next: Record<string, string[]>) => onChange({ ...dataset, meta: { ...dataset.meta, categoryGroups: next } });
+  const updateGroups = (next: Record<string, string[]>) => onChangeGroups ? onChangeGroups(next) : onChange({ ...dataset, meta: { ...dataset.meta, categoryGroups: next } });
   const createGroup = () => { const name = newGroup.trim(); if (!name || groups[name]) return; updateGroups({ ...groups, [name]: [] }); setSelectedGroup(name); setNewGroup(''); };
   const deleteGroup = (name: string) => { if (!window.confirm(`确定删除“${name}”这个自定义大类吗？原始小类和工作记录不会被删除。`)) return; updateGroups(Object.fromEntries(Object.entries(groups).filter(([groupName]) => groupName !== name))); if (selectedGroup === name) setSelectedGroup(''); };
   const startRename = (name: string) => { setEditingGroup(name); setEditingName(name); };

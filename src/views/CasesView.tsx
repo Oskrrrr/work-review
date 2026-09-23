@@ -1,9 +1,9 @@
 import { Check, Eye, EyeOff, FolderKanban, RotateCcw, Trash2, Unlink, X } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
-import { detachCase, detachRecordFromCase, updateCaseCategory, updateCaseKind, updateCaseLifecycle } from '../lib/cases';
+import { detachCase, detachRecordFromCase, updateCaseCategory, updateCaseKind } from '../lib/cases';
 import type { LongTermProject, WorkDataset } from '../types';
 
-export function CasesView({ dataset, projects, onAssignProject, onCreateProject, onChange }: { dataset: WorkDataset; projects: LongTermProject[]; onAssignProject: (caseId: string, projectId?: string) => void; onCreateProject: (caseId: string, title: string) => void; onChange: (dataset: WorkDataset) => void }) {
+export function CasesView({ dataset, projects, onAssignProject, onCreateProject, onChangeLifecycle, onChange }: { dataset: WorkDataset; projects: LongTermProject[]; onAssignProject: (caseId: string, projectId?: string) => void; onCreateProject: (caseId: string, title: string) => void; onChangeLifecycle: (caseId: string, lifecycle: 'active' | 'completed') => void; onChange: (dataset: WorkDataset) => void }) {
   const [selectedId, setSelectedId] = useState<string>();
   const [newProjectFor, setNewProjectFor] = useState<string>();
   const [newProjectTitle, setNewProjectTitle] = useState('');
@@ -24,7 +24,7 @@ export function CasesView({ dataset, projects, onAssignProject, onCreateProject,
         return <tr key={item.id} className={completed ? 'case-row-completed' : undefined}>
           <td className="case-code">{item.id}</td><td>{item.title}</td><td>{item.recordIds.length}</td>
           <td><select value={item.kind || 'long-term'} onChange={event => onChange(updateCaseKind(dataset, item.id, event.target.value as 'long-term' | 'periodic'))}><option value="long-term">长期事项</option><option value="periodic">阶段性工作</option></select></td>
-          <td><button className={`case-status-button${completed ? ' completed' : ''}`} onClick={() => onChange(updateCaseLifecycle(dataset, item.id, completed ? 'active' : 'completed'))} title={completed ? '重新打开事项' : '标记为已办结'}>{completed ? <><RotateCcw size={13}/>已办结</> : <><Check size={13}/>进行中</>}</button></td>
+          <td><button className={`case-status-button${completed ? ' completed' : ''}`} onClick={() => onChangeLifecycle(item.id, completed ? 'active' : 'completed')} title={completed ? '重新打开事项' : '标记为已办结'}>{completed ? <><RotateCcw size={13}/>已办结</> : <><Check size={13}/>进行中</>}</button></td>
           <td>{item.kind === 'periodic' ? <span className="case-project-muted">阶段性工作不跨年度</span> : <div className="case-project-picker"><select value={item.longTermProjectId || ''} onChange={event => onAssignProject(item.id, event.target.value || undefined)}><option value="">未关联主档</option>{projects.map(project => <option key={project.id} value={project.id}>{project.title}</option>)}</select><button type="button" className="case-project-create" onClick={() => openNewProject(item.id)}>新建</button></div>}</td>
           <td><select value={item.categoryOverride || ''} onChange={event => onChange(updateCaseCategory(dataset, item.id, event.target.value))}><option value="">使用原始分类</option>{categories.map(category => <option key={category}>{category}</option>)}</select></td>
           <td className="case-actions"><button className={`icon-button${isOpen ? ' active' : ''}`} onClick={() => setSelectedId(current => current === item.id ? undefined : item.id)} aria-label={isOpen ? `收起 ${item.id}` : `查看 ${item.id}`} title={isOpen ? '收起事项' : '查看事项'}>{isOpen ? <EyeOff size={17}/> : <Eye size={17}/>}</button><button className="icon-button danger" onClick={() => detach(item.id)} aria-label={`取消 ${item.id} 的关联`} title="取消关联"><Unlink size={17}/></button></td>
