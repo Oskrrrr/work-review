@@ -7,7 +7,7 @@ import { acceptSuggestion, associationRecordKey, buildCaseSuggestions, mergeCase
 import { clearLocalData, deleteDataset, loadDataset, loadDatasets, saveDataset, saveImages } from './lib/storage';
 import { getCloudDataset, getCloudSettings, hasCloudApi, saveCloudCases, saveCloudSettings, WPS_AUTH_PENDING_KEY, PERSONAL_WPS_FILE_KEY, type UserSettings, triggerCloudSync, downloadPersonalWpsFile, type PersonalWpsFile, loginPersonalWps } from './lib/api';
 import { demoDataset } from './demo';
-import type { LongTermProject, WorkDataset } from './types';
+import type { LongTermProject, ProjectRecordLink, WorkDataset } from './types';
 import { importWorkbook, inferYearFromFileName, personalDatasetId, type ImportResult } from './lib/workbook';
 import { OverviewView } from './views/OverviewView';
 import { TimelineView } from './views/TimelineView';
@@ -241,6 +241,20 @@ function App() {
     assignCaseProject(caseId, project.id);
     notify(`已建立跨年度长期事项“${normalized}”`);
   };
+  const addRecordsToProject = (projectId: string, links: ProjectRecordLink[]) => {
+    if (!links.length) return;
+    setLongTermProjects(current => current.map(project => {
+      if (project.id !== projectId) return project;
+      const existing = new Set((project.recordLinks || []).map(link => `${link.datasetId}:${link.recordId}`));
+      return { ...project, recordLinks: [...(project.recordLinks || []), ...links.filter(link => !existing.has(`${link.datasetId}:${link.recordId}`))] };
+    }));
+    notify(`已将 ${links.length} 条记录加入跨年度主档`);
+  };
+  const removeRecordFromProject = (projectId: string, link: ProjectRecordLink) => {
+    if (!window.confirm('确定将这条记录移出跨年度主档吗？原始记录和事项编号不会被删除。')) return;
+    setLongTermProjects(current => current.map(project => project.id === projectId ? { ...project, recordLinks: (project.recordLinks || []).filter(item => !(item.datasetId === link.datasetId && item.recordId === link.recordId)) } : project));
+    notify('已将记录移出跨年度主档');
+  };
   const mergeSelectedCases = (caseIds: string[]) => {
     const next = mergeCases(dataset, caseIds);
     if (next === dataset) return;
@@ -379,7 +393,7 @@ function App() {
       {view==='overview'&&<OverviewView dataset={dataset} year={datasetDisplayYear(dataset)} selectedDate={selectedDate} onSelectDate={selectHeatmapDate} onOpenImage={openImage} onNavigate={name=>navigateToView(name as ViewName)} hideContent={hideContent}/>}
       {view==='timeline'&&<TimelineView dataset={search?{...dataset,records:dataset.records.filter(record=>[record.title,record.caseId,...record.steps.map(step=>step.text)].join(' ').toLowerCase().includes(search.toLowerCase()))}:dataset} onOpenImage={openImage} hideContent={hideContent}/>} 
       {view==='categories'&&<CategoriesView dataset={dataset}/>} 
-      {view==='work-front'&&selectedProject&&<ProjectDetailView project={selectedProject} datasets={allDatasets} onBack={()=>setProjectDetailId('')} onOpenImage={openImage} onChangeLifecycle={updateCaseLifecycleAcrossProject} hideContent={hideContent}/>}
+      {view==='work-front'&&selectedProject&&<ProjectDetailView project={selectedProject} datasets={allDatasets} onBack={()=>setProjectDetailId('')} onOpenImage={openImage} onChangeLifecycle={updateCaseLifecycleAcrossProject} onAddRecords={addRecordsToProject} onRemoveRecord={removeRecordFromProject} hideContent={hideContent}/>}
       {view==='work-front'&&!selectedProject&&<WorkFrontView dataset={dataset} datasets={allDatasets} projects={longTermProjects} onOpenCase={()=>navigateToView('cases')} onOpenProject={setProjectDetailId} onChangeLifecycle={updateCaseLifecycleAcrossProject}/>}
       {view==='group-editor'&&<GroupEditorView dataset={dataset} datasets={datasets} onChange={applyDataset} onChangeGroups={updateCategoryGroups}/>}
       {view==='custom-association'&&<CustomAssociationView dataset={dataset} onChange={applyDataset}/>} 

@@ -44,6 +44,18 @@ export interface LongTermProject {
   id: string;
   title: string;
   createdAt: string;
+  /** Records that belong to this cross-year project without needing a case number. */
+  recordLinks?: ProjectRecordLink[];
+}
+
+export interface ProjectRecordLink {
+  datasetId: string;
+  recordId: string;
+  addedAt: string;
+  /** Fallback identity used when a WPS refresh gives the row a new id. */
+  sourceSignature?: string;
+  date?: string;
+  title?: string;
 }
 
 export interface DatasetMeta {

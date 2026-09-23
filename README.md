@@ -54,7 +54,16 @@
 
 ### Windows 客户端
 
-从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.7.5-windows-x64-setup.exe`。
+从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.8.0-windows-x64-setup.exe`。
+
+### 0.8.0 更新
+
+- 跨年度长期事项主档现在可以直接添加任意年度的一条或多条工作记录。
+- 支持将去年只有一条的历史记录加入今年已经建立的长期事项，不需要为了满足自动关联条件而凑成两条记录。
+- 主档详情新增“添加历史记录”入口，可按数据年度和关键词选择记录。
+- 添加的单条记录会在项目详情中单独标记为“主档记录”，与年度事项编号并列展示。
+- 支持将单条记录移出主档，原始记录和事项编号不会被删除。
+- 记录链接同时保存来源特征，WPS 更新导致记录 ID 变化时仍可尝试恢复关联。
 
 ### 0.7.5 更新
 

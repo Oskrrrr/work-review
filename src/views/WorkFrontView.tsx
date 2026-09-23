@@ -2,6 +2,10 @@ import { ArrowDownWideNarrow, ArrowRight, ArrowUpNarrowWide, CalendarRange, Chec
 import { useMemo, useState } from 'react';
 import type { LongTermProject, WorkDataset } from '../types';
 
+function datasetIdOf(dataset: WorkDataset) {
+  return dataset.meta.datasetId || `${dataset.meta.year}-${dataset.meta.sourceName}`;
+}
+
 function daysBetween(start: string, end: string) {
   return Math.max(1, Math.floor((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / 86400000) + 1);
 }
@@ -36,9 +40,17 @@ export function WorkFrontView({ dataset, datasets, projects, onOpenCase, onOpenP
   const projectSummaries = useMemo(() => {
     const source = datasets.length ? datasets : [dataset];
     return new Map(projects.map(project => {
-      const linked = source.flatMap(item => item.cases
+      const caseLinked = source.flatMap(item => item.cases
         .filter(caseItem => caseItem.longTermProjectId === project.id)
         .flatMap(caseItem => item.records.filter(record => caseItem.recordIds.includes(record.id))));
+      const linkedKeys = new Set(source.flatMap(item => item.cases.filter(caseItem => caseItem.longTermProjectId === project.id).flatMap(caseItem => caseItem.recordIds.map(recordId => `${datasetIdOf(item)}:${recordId}`))));
+      const directLinked = source.flatMap(item => (project.recordLinks || [])
+        .filter(link => link.datasetId === datasetIdOf(item))
+        .map(link => { const record = item.records.find(candidate => candidate.id === link.recordId || (link.sourceSignature && candidate.sourceSignature === link.sourceSignature) || (link.date === candidate.date && link.title === candidate.title)); return record ? { record, dataset: item } : undefined; })
+        .filter((entry): entry is { record: WorkDataset['records'][number]; dataset: WorkDataset } => Boolean(entry))
+        .filter(entry => !linkedKeys.has(`${datasetIdOf(entry.dataset)}:${entry.record.id}`))
+        .map(entry => entry.record));
+      const linked = [...caseLinked, ...directLinked].sort((a, b) => a.date.localeCompare(b.date));
       const dates = linked.map(record => record.date).sort();
       const linkedCases = source.flatMap(item => item.cases.filter(caseItem => caseItem.longTermProjectId === project.id));
       return [project.id, { project, records: linked.sort((a, b) => a.date.localeCompare(b.date)), dates, years: [...new Set(dates.map(date => date.slice(0, 4)))].sort(), cases: linkedCases }] as const;

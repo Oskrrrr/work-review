@@ -352,6 +352,7 @@ select:not([multiple]):disabled { cursor:not-allowed; opacity:.62; background-co
 .project-record-context { display:grid; gap:4px; padding:7px 5px; }
 .project-record-context span { color:var(--green); font-size:11px; font-weight:650; }
 .project-record-context small { color:var(--muted); font-size:11px; line-height:1.5; }
+.project-record-remove { justify-self:start; margin-top:3px; padding:0; border:0; background:transparent; color:#a65a51; font:inherit; font-size:10px; cursor:pointer; }.project-record-remove:hover { text-decoration:underline; }
 .project-record-entry .record-card { border:0; padding:4px 7px; box-shadow:none; }
 @media (max-width:800px) { .project-detail-hero { align-items:flex-start; flex-direction:column; }.project-detail-actions { justify-content:flex-start; }.project-record-entry { grid-template-columns:1fr; }.project-record-context { padding:3px 5px 0; }.project-detail-title h2 { font-size:21px; } }
 @media (max-width:500px) { .project-detail-kpis { grid-template-columns:1fr; }.project-detail-filter { align-items:flex-start; }.project-detail-filter strong { flex-basis:100%; } }
@@ -365,6 +366,11 @@ select:not([multiple]):disabled { cursor:not-allowed; opacity:.62; background-co
 .project-dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:20px; }
 .project-dialog-actions .dialog-primary,.project-dialog-actions .dialog-secondary { width:auto; min-width:92px; height:38px; margin-top:0; padding:0 16px; }
 .project-dialog-actions .dialog-primary:disabled { opacity:.5; cursor:not-allowed; }
+.project-record-dialog { width:min(720px,100%); max-height:calc(100vh - 40px); display:flex; flex-direction:column; overflow:hidden; }
+.project-record-dialog h2 { margin-top:15px; }.project-record-dialog>p { margin-bottom:4px; }
+.project-record-year { display:grid; gap:6px; margin-top:14px; color:var(--muted); font-size:12px; }.project-record-year select { height:39px; border:1px solid var(--line); border-radius:8px; padding:0 10px; background:#fbfcfb; color:var(--ink); font:inherit; }
+.project-record-search { display:flex; align-items:center; gap:8px; height:40px; margin-top:10px; padding:0 10px; border:1px solid var(--line); border-radius:9px; background:#fbfcfb; color:var(--muted); }.project-record-search input { flex:1; min-width:0; border:0; outline:0; background:transparent; color:var(--ink); font:inherit; font-size:12px; }
+.project-record-picker-list { display:grid; gap:7px; min-height:130px; max-height:320px; overflow:auto; margin-top:11px; padding:2px 4px 4px 0; }.project-record-picker-item { display:flex; align-items:flex-start; gap:10px; padding:10px 11px; border:1px solid var(--line); border-radius:9px; background:#fff; cursor:pointer; }.project-record-picker-item.selected { border-color:#8fcaa4; background:#eef9f1; }.project-record-picker-item input { width:16px; height:16px; margin-top:2px; accent-color:var(--green); }.project-record-picker-item span { display:grid; gap:3px; min-width:0; }.project-record-picker-item strong { font-size:13px; line-height:1.45; }.project-record-picker-item small { color:var(--muted); font-size:11px; }.project-record-dialog-footer { display:flex; align-items:center; gap:8px; margin-top:14px; padding-top:13px; border-top:1px solid var(--line); }.project-record-dialog-footer span { margin-right:auto; color:var(--green); font-size:12px; font-weight:650; }.project-record-dialog-footer .dialog-secondary,.project-record-dialog-footer .dialog-primary { width:auto; min-width:82px; height:38px; margin-top:0; padding:0 13px; }.project-record-dialog-footer button:disabled { opacity:.5; cursor:not-allowed; }
 .poster-dialog { width:min(1040px,100%); max-height:calc(100vh - 34px); overflow:auto; }
 .poster-dialog-head { display:flex; align-items:flex-start; gap:12px; padding-right:25px; }
 .poster-dialog-head h2 { margin-top:8px; }
