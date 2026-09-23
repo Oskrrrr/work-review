@@ -36,6 +36,9 @@ export interface DatasetMeta {
   datasetId?: string;
   /** User-facing name used in the annual dataset switcher. */
   displayName?: string;
+  /** Stable personal WPS file identity used when refreshing the current dataset. */
+  sourceFileId?: string;
+  sourceDriveId?: string;
   sourceName: string;
   sheetName: string;
   year: number;

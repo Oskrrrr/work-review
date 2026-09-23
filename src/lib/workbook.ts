@@ -24,6 +24,18 @@ function stableHash(value: string) {
   return (hash >>> 0).toString(36);
 }
 
+/** Prefer a four-digit year embedded in a workbook name, such as 2025工作记录.xlsx. */
+export function inferYearFromFileName(name: string, fallback: number) {
+  const matches = [...String(name || '').matchAll(/(?:^|[^\d])((?:19|20|21)\d{2})(?=[^\d]|$)/g)];
+  const year = Number(matches.at(-1)?.[1] || 0);
+  return year >= 1900 && year <= 2200 ? year : fallback;
+}
+
+/** Keep a personal WPS workbook tied to its cloud file rather than the current calendar year. */
+export function personalDatasetId(fileId: string, fileName: string, driveId = '') {
+  return `personal-${stableHash(`${driveId}|${fileId || fileName}`)}`;
+}
+
 export function parseWorkDate(value: unknown, year: number) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
   if (typeof value === 'number' && value > 31) {

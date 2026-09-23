@@ -2,9 +2,16 @@
 import { readFile } from 'node:fs/promises';
 import * as XLSX from 'xlsx';
 import { describe, expect, it } from 'vitest';
-import { importWorkbook, parseCellImageMap, parseWorkDate } from './workbook';
+import { importWorkbook, inferYearFromFileName, parseCellImageMap, parseWorkDate, personalDatasetId } from './workbook';
 
 describe('workbook importer', () => {
+  it('infers a data year from a workbook name and keeps a stable personal file id', () => {
+    expect(inferYearFromFileName('2025工作记录.xlsx', 2026)).toBe(2025);
+    expect(inferYearFromFileName('工作记录-2024-备份.xlsx', 2026)).toBe(2024);
+    expect(inferYearFromFileName('工作记录.xlsx', 2026)).toBe(2026);
+    expect(personalDatasetId('file-123', '2025工作记录.xlsx')).toBe(personalDatasetId('file-123', '改名后的工作记录.xlsx'));
+  });
+
   it('parses month-day values with an explicit source year', () => {
     expect(parseWorkDate('1.4', 2026)).toBe('2026-01-04');
     expect(parseWorkDate(1.6, 2026)).toBe('2026-01-06');

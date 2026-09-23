@@ -5,10 +5,10 @@ import { FirstRunDialog } from './components/FirstRunDialog';
 import { PosterExportDialog } from './components/PosterExportDialog';
 import { acceptSuggestion, buildCaseSuggestions, renumberCases, type CaseSuggestion } from './lib/cases';
 import { clearLocalData, deleteDataset, loadDataset, loadDatasets, saveDataset, saveImages } from './lib/storage';
-import { getCloudDataset, getCloudSettings, hasCloudApi, saveCloudCases, saveCloudSettings, WPS_AUTH_PENDING_KEY, type UserSettings, triggerCloudSync, downloadPersonalWpsFile, type PersonalWpsFile, loginPersonalWps } from './lib/api';
+import { getCloudDataset, getCloudSettings, hasCloudApi, saveCloudCases, saveCloudSettings, WPS_AUTH_PENDING_KEY, PERSONAL_WPS_FILE_KEY, type UserSettings, triggerCloudSync, downloadPersonalWpsFile, type PersonalWpsFile, loginPersonalWps } from './lib/api';
 import { demoDataset } from './demo';
 import type { WorkDataset } from './types';
-import { importWorkbook, type ImportResult } from './lib/workbook';
+import { importWorkbook, inferYearFromFileName, personalDatasetId, type ImportResult } from './lib/workbook';
 import { OverviewView } from './views/OverviewView';
 import { TimelineView } from './views/TimelineView';
 import { CategoriesView } from './views/CategoriesView';
@@ -59,6 +59,46 @@ function sortDatasets(items: WorkDataset[]) {
   return [...items].sort((a, b) => b.meta.year - a.meta.year || b.meta.importedAt.localeCompare(a.meta.importedAt));
 }
 
+const PERSONAL_WPS_FILE_MAP_KEY = 'work-review-personal-wps-files';
+
+function personalWpsFileMap() {
+  try { return JSON.parse(localStorage.getItem(PERSONAL_WPS_FILE_MAP_KEY) || '{}') as Record<string, PersonalWpsFile>; }
+  catch { return {}; }
+}
+
+function rememberPersonalWpsFile(datasetId: string, file: PersonalWpsFile) {
+  try {
+    const map = personalWpsFileMap();
+    map[datasetId] = file;
+    localStorage.setItem(PERSONAL_WPS_FILE_MAP_KEY, JSON.stringify(map));
+    localStorage.setItem(PERSONAL_WPS_FILE_KEY, JSON.stringify(file));
+  } catch { /* localStorage may be unavailable in a restricted browser */ }
+}
+
+function forgetPersonalWpsFile(datasetId: string) {
+  try {
+    const map = personalWpsFileMap();
+    delete map[datasetId];
+    localStorage.setItem(PERSONAL_WPS_FILE_MAP_KEY, JSON.stringify(map));
+  } catch { /* best effort cleanup */ }
+}
+
+function personalFileMatchesDataset(file: PersonalWpsFile | undefined, item: WorkDataset) {
+  if (!file || item.meta.sourceMode !== 'personal-wps') return false;
+  if (item.meta.sourceFileId) return file.id === item.meta.sourceFileId && (!item.meta.sourceDriveId || file.driveId === item.meta.sourceDriveId);
+  return file.name === item.meta.sourceName;
+}
+
+function configuredPersonalWpsFile(item: WorkDataset) {
+  const id = datasetIdOf(item);
+  const mapped = personalWpsFileMap()[id];
+  if (personalFileMatchesDataset(mapped, item)) return mapped;
+  try {
+    const saved = JSON.parse(localStorage.getItem(PERSONAL_WPS_FILE_KEY) || 'null') as PersonalWpsFile | null;
+    return personalFileMatchesDataset(saved ?? undefined, item) ? saved ?? undefined : undefined;
+  } catch { return undefined; }
+}
+
 // WPS 同步只更新原始记录；本机保存的人工关联不能被远端数据覆盖。
 function settingsFrom(dataset: WorkDataset): UserSettings {
   return { cases: dataset.cases, categoryGroups: dataset.meta.categoryGroups ?? {}, customAssociations: dataset.meta.customAssociations ?? [], associationExclusions: dataset.meta.associationExclusions ?? [] };
@@ -87,6 +127,32 @@ function mergeLocalUserState(remote: WorkDataset, local?: WorkDataset, cloudSett
   };
   const localHasSettings = Boolean(local && (local.cases.length || local.meta.categoryGroups || local.meta.customAssociations || local.meta.associationExclusions));
   return applyCloudSettings(merged, localHasSettings ? settingsFrom(local!) : cloudSettings);
+}
+
+// Refreshing a workbook replaces only its source records. Keep the user's
+// manually confirmed projects, category groups and display name attached to
+// the same cloud file while dropping references to rows that no longer exist.
+function mergePersonalDataset(previous: WorkDataset, imported: WorkDataset) {
+  const recordIds = new Set(imported.records.map(record => record.id));
+  const cases = previous.cases
+    .map(item => ({ ...item, recordIds: item.recordIds.filter(id => recordIds.has(id)) }))
+    .filter(item => item.recordIds.length);
+  const customAssociations = (previous.meta.customAssociations ?? []).map(rule => ({
+    ...rule,
+    recordIds: rule.recordIds.filter(id => recordIds.has(id))
+  })).filter(rule => rule.recordIds.length);
+  const merged = {
+    ...imported,
+    cases,
+    meta: {
+      ...imported.meta,
+      ...(previous.meta.displayName ? { displayName: previous.meta.displayName } : {}),
+      ...(previous.meta.categoryGroups ? { categoryGroups: previous.meta.categoryGroups } : {}),
+      ...(customAssociations.length ? { customAssociations } : {}),
+      ...(previous.meta.associationExclusions ? { associationExclusions: previous.meta.associationExclusions } : {})
+    }
+  };
+  return applyCloudSettings(merged, settingsFrom(merged));
 }
 
 function App() {
@@ -156,20 +222,37 @@ function App() {
       setSelectedDate(newestDate(next));
       if (next.meta.sourceMode !== 'demo') await saveDataset(next);
     }
+    forgetPersonalWpsFile(id);
     notify(`已删除数据表“${datasetLabel(target)}”`);
   };
   const handleImported = async (result:ImportResult) => { await saveImages(result.images, datasetId(result.dataset)); applyDataset(result.dataset); setSelectedDate(newestDate(result.dataset)); notify(`已保存 ${result.dataset.meta.year} 年数据：${result.dataset.records.length} 条记录和 ${result.dataset.meta.imageCount} 个图片引用`); };
-  const handlePersonalWpsImport = async (file: PersonalWpsFile) => {
+  const handlePersonalWpsImport = async (file: PersonalWpsFile, targetDatasetId?: string) => {
     notify('正在下载个人 WPS 工作记录…');
     try {
       const downloaded = await downloadPersonalWpsFile(file);
-      const workbook = new File([downloaded.bytes], downloaded.name || file.name || '工作记录.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const result = await importWorkbook(workbook, new Date().getFullYear());
-      result.dataset.meta.sourceMode = 'personal-wps';
-      result.dataset.meta.sourceName = downloaded.name || file.name;
-      await handleImported(result);
-      localStorage.setItem('work-review-personal-wps-file', JSON.stringify(file));
-      notify(`已从个人 WPS 导入 ${result.dataset.records.length} 条记录`);
+      const sourceName = downloaded.name || file.name || '工作记录.xlsx';
+      const target = targetDatasetId ? datasets.find(item => datasetId(item) === targetDatasetId) ?? (datasetId(dataset) === targetDatasetId ? dataset : undefined) : undefined;
+      const year = inferYearFromFileName(sourceName, target?.meta.year ?? new Date().getFullYear());
+      const workbook = new File([downloaded.bytes], sourceName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const result = await importWorkbook(workbook, year);
+      const stableId = target ? datasetId(target) : personalDatasetId(file.id, sourceName, file.driveId);
+      const imported = {
+        ...result.dataset,
+        meta: {
+          ...result.dataset.meta,
+          datasetId: stableId,
+          sourceMode: 'personal-wps' as const,
+          sourceName,
+          sourceFileId: file.id,
+          ...(file.driveId ? { sourceDriveId: file.driveId } : {})
+        }
+      };
+      const merged = target ? mergePersonalDataset(target, imported) : imported;
+      await saveImages(result.images, stableId);
+      applyDataset(merged);
+      setSelectedDate(newestDate(merged));
+      rememberPersonalWpsFile(stableId, file);
+      notify(`已同步个人 WPS：${merged.meta.year} 年，更新 ${merged.records.length} 条记录`);
     } catch (reason) {
       notify(reason instanceof Error ? reason.message : '个人 WPS 文件导入失败');
     }
@@ -186,9 +269,9 @@ function App() {
   const openImage = (url:string,title:string) => setImagePreview({url,title});
   const syncNow = async () => {
     if (dataset.meta.sourceMode === 'personal-wps') {
-      const saved = localStorage.getItem('work-review-personal-wps-file');
-      if (!saved) { setView('settings'); notify('请先在“数据与同步”中选择个人 WPS 文件'); return; }
-      try { await handlePersonalWpsImport(JSON.parse(saved) as PersonalWpsFile); } catch { setView('settings'); notify('个人 WPS 文件配置已失效，请重新选择'); }
+      const saved = configuredPersonalWpsFile(dataset);
+      if (!saved) { setView('settings'); notify('当前年度还没有绑定个人 WPS 文件，请在“数据与同步”中重新选择'); return; }
+      await handlePersonalWpsImport(saved, datasetId(dataset));
       return;
     }
     if (dataset.meta.sourceMode !== 'wps' || !hasCloudApi()) { setImportOpen(true); return; }
@@ -215,7 +298,7 @@ function App() {
       {view==='custom-association'&&<CustomAssociationView dataset={dataset} onChange={applyDataset}/>} 
       {view==='cases'&&<CasesView dataset={dataset} onChange={applyDataset}/>} 
       {view==='suggestions'&&<SuggestionsView suggestions={suggestions} onAccept={accept} onReject={reject}/>} 
-      {view==='settings'&&<SettingsView dataset={dataset} datasets={datasets} onImport={()=>setImportOpen(true)} onUpdateDataset={updateStoredDataset} onDeleteDataset={removeStoredDataset} onClear={clear} onExportConfig={exportConfig} onImportConfig={importConfig} onConfigureWps={()=>setFirstRunOpen(true)} onPersonalImport={handlePersonalWpsImport} onExportAiText={exportAiText} onCopyAiText={copyAiText} onExportPoster={()=>setPosterOpen(true)}/>}
+      {view==='settings'&&<SettingsView dataset={dataset} datasets={datasets} onImport={()=>setImportOpen(true)} onUpdateDataset={updateStoredDataset} onDeleteDataset={removeStoredDataset} onClear={clear} onExportConfig={exportConfig} onImportConfig={importConfig} onConfigureWps={()=>setFirstRunOpen(true)} onPersonalImport={file => handlePersonalWpsImport(file, dataset.meta.sourceMode === 'personal-wps' && personalFileMatchesDataset(file, dataset) ? datasetId(dataset) : undefined)} onExportAiText={exportAiText} onCopyAiText={copyAiText} onExportPoster={()=>setPosterOpen(true)}/>}
     </main>
     <ImportDialog open={importOpen} onClose={()=>setImportOpen(false)} onImported={handleImported}/>
     <PosterExportDialog open={posterOpen} dataset={dataset} defaultHideContent={hideContent} onClose={()=>setPosterOpen(false)} onSaved={notify}/>

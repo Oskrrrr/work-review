@@ -44,6 +44,7 @@
 - 支持自定义关联、事项编号、类别纠正和关联排除词
 - 长期工作前台按持续时间、记录次数和事项编号排序与筛选
 - 一键导出适合交给 AI 的年度工作报告素材，或复制到剪贴板
+- 可生成年度总结海报，保存前支持工作内容打码
 - 个人 WPS 模式使用官方 `kdocs-cli`，每个用户登录自己的账号
 - 配置和工作记录默认保存在当前客户端；支持手动导出/导入配置
 - Windows Electron 客户端，同时保留网页/PWA 运行方式
@@ -52,7 +53,7 @@
 
 ### Windows 客户端
 
-从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.4.0-windows-x64-setup.exe`。
+从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.4.1-windows-x64-setup.exe`。
 
 首次使用有两种方式：
 
