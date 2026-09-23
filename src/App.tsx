@@ -18,6 +18,7 @@ import { SettingsView } from './views/SettingsView';
 import { GroupEditorView } from './views/GroupEditorView';
 import { CustomAssociationView } from './views/CustomAssociationView';
 import { WorkFrontView } from './views/WorkFrontView';
+import { ProjectDetailView } from './views/ProjectDetailView';
 import { buildAiWorklogMarkdown } from './lib/textExport';
 
 type ViewName = 'overview'|'timeline'|'categories'|'work-front'|'cases'|'suggestions'|'group-editor'|'custom-association'|'settings';
@@ -175,6 +176,7 @@ function App() {
   const [rejectedSuggestions,setRejectedSuggestions] = useState<string[]>(() => JSON.parse(localStorage.getItem('rejected-suggestions') || '[]'));
   const [hideContent, setHideContent] = useState(false);
   const [longTermProjects, setLongTermProjects] = useState<LongTermProject[]>(loadLongTermProjects);
+  const [projectDetailId, setProjectDetailId] = useState('');
   const toastTimer = useRef<number>();
 
   // 如果上一次授权过程中客户端被关闭，下一次启动时只清理 WPS 的
@@ -319,6 +321,8 @@ function App() {
     catch (reason) { notify(reason instanceof Error ? reason.message : '同步失败'); }
   };
   const searchMatchCount = search ? dataset.records.filter(record => [record.title,record.caseId,...record.steps.map(step=>step.text)].join(' ').toLowerCase().includes(search.toLowerCase())).length : 0;
+  const allDatasets = datasets.some(item => datasetId(item) === datasetId(dataset)) ? datasets : [...datasets, dataset];
+  const selectedProject = longTermProjects.find(project => project.id === projectDetailId);
 
   return <div className="app-shell">
     <aside className="sidebar">
@@ -332,7 +336,8 @@ function App() {
       {view==='overview'&&<OverviewView dataset={dataset} year={datasetDisplayYear(dataset)} selectedDate={selectedDate} onSelectDate={selectHeatmapDate} onOpenImage={openImage} onNavigate={name=>setView(name as ViewName)} hideContent={hideContent}/>} 
       {view==='timeline'&&<TimelineView dataset={search?{...dataset,records:dataset.records.filter(record=>[record.title,record.caseId,...record.steps.map(step=>step.text)].join(' ').toLowerCase().includes(search.toLowerCase()))}:dataset} onOpenImage={openImage} hideContent={hideContent}/>} 
       {view==='categories'&&<CategoriesView dataset={dataset}/>} 
-      {view==='work-front'&&<WorkFrontView dataset={dataset} datasets={datasets} projects={longTermProjects} onOpenCase={()=>setView('cases')} onChange={applyDataset} onChangeLifecycle={updateCaseLifecycleAcrossProject}/>}
+      {view==='work-front'&&selectedProject&&<ProjectDetailView project={selectedProject} datasets={allDatasets} onBack={()=>setProjectDetailId('')} onOpenImage={openImage} onChangeLifecycle={updateCaseLifecycleAcrossProject} hideContent={hideContent}/>}
+      {view==='work-front'&&!selectedProject&&<WorkFrontView dataset={dataset} datasets={allDatasets} projects={longTermProjects} onOpenCase={()=>setView('cases')} onOpenProject={setProjectDetailId} onChangeLifecycle={updateCaseLifecycleAcrossProject}/>}
       {view==='group-editor'&&<GroupEditorView dataset={dataset} datasets={datasets} onChange={applyDataset} onChangeGroups={updateCategoryGroups}/>}
       {view==='custom-association'&&<CustomAssociationView dataset={dataset} onChange={applyDataset}/>} 
       {view==='cases'&&<CasesView dataset={dataset} projects={longTermProjects} onAssignProject={assignCaseProject} onCreateProject={createCaseProject} onChange={applyDataset} onChangeLifecycle={updateCaseLifecycleAcrossProject}/>}
