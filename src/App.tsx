@@ -1,4 +1,4 @@
-import { CalendarDays, Clock3, Cloud, Eye, EyeOff, FileSpreadsheet, FolderKanban, LayoutDashboard, ListFilter, RefreshCw, Search, Settings, Tags, X, SlidersHorizontal, Link2 } from 'lucide-react';
+import { Clock3, Cloud, Eye, EyeOff, FileSpreadsheet, FolderKanban, Info, LayoutDashboard, ListFilter, RefreshCw, Search, Settings, Tags, X, SlidersHorizontal, Link2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ImportDialog } from './components/ImportDialog';
 import { FirstRunDialog } from './components/FirstRunDialog';
@@ -19,10 +19,11 @@ import { GroupEditorView } from './views/GroupEditorView';
 import { CustomAssociationView } from './views/CustomAssociationView';
 import { WorkFrontView } from './views/WorkFrontView';
 import { ProjectDetailView } from './views/ProjectDetailView';
+import { AboutView } from './views/AboutView';
 import { buildAiWorklogMarkdown } from './lib/textExport';
 import { reconcilePersonalDataset } from './lib/personalSync';
 
-type ViewName = 'overview'|'timeline'|'categories'|'work-front'|'cases'|'suggestions'|'group-editor'|'custom-association'|'settings';
+type ViewName = 'overview'|'timeline'|'categories'|'work-front'|'cases'|'suggestions'|'group-editor'|'custom-association'|'settings'|'about';
 
 const navigation: Array<{group?:string;id:ViewName;label:string;icon:typeof LayoutDashboard}> = [
   {group:'回顾',id:'overview',label:'年度概览',icon:LayoutDashboard},
@@ -33,7 +34,8 @@ const navigation: Array<{group?:string;id:ViewName;label:string;icon:typeof Layo
   {id:'custom-association',label:'自定义关联',icon:Link2},
   {group:'事项',id:'cases',label:'事项编号总表',icon:FolderKanban},
   {id:'suggestions',label:'待确认关联',icon:ListFilter},
-  {group:'系统',id:'settings',label:'数据与同步',icon:Settings}
+  {group:'系统',id:'settings',label:'数据与同步',icon:Settings},
+  {id:'about',label:'软件信息',icon:Info}
 ];
 
 function newestDate(dataset: WorkDataset) {
@@ -382,7 +384,7 @@ function App() {
 
   return <div className="app-shell">
     <aside className="sidebar">
-      <div className="brand"><div className="brand-mark"><CalendarDays size={20}/></div><div><strong>工作脉络</strong><span>个人工作记录</span></div></div>
+      <div className="brand"><div className="brand-mark"><img src="./work-review-icon.png" alt="" /></div><div><strong>工作脉络</strong><span>个人工作记录</span></div></div>
       <nav aria-label="主导航">{navigation.map(item => { const Icon=item.icon; return <div key={item.id}>{item.group && <p>{item.group}</p>}<button className={view===item.id?'active':''} onClick={()=>navigateToView(item.id)}><Icon size={18}/><span>{item.label}</span>{item.id==='cases'&&<em>{dataset.cases.length}</em>}{item.id==='suggestions'&&<em>{suggestions.length}</em>}</button></div>; })}</nav>
       <div className="source-card"><div className="source-title"><Cloud size={17}/><strong>{dataset.meta.sourceMode==='demo'?'等待连接':'数据源已连接'}</strong></div><p>{dataset.meta.sourceName}<br/>{dataset.meta.sourceMode==='demo'?'可先导入本地工作簿':`已导入 ${dataset.records.length} 条记录`}</p><button onClick={syncNow}><RefreshCw size={15}/><span>{dataset.meta.sourceMode==='personal-wps'?'同步个人 WPS':dataset.meta.sourceMode==='wps'?'立即同步':dataset.meta.sourceMode==='demo'?'连接数据源':'重新导入'}</span></button></div>
     </aside>
@@ -400,6 +402,7 @@ function App() {
       {view==='cases'&&<CasesView dataset={dataset} projects={longTermProjects} onAssignProject={assignCaseProject} onCreateProject={createCaseProject} onChange={applyDataset} onChangeLifecycle={updateCaseLifecycleAcrossProject} onMerge={mergeSelectedCases}/>}
       {view==='suggestions'&&<SuggestionsView suggestions={suggestions} onAccept={accept} onReject={reject}/>} 
       {view==='settings'&&<SettingsView dataset={dataset} datasets={datasets} onImport={()=>setImportOpen(true)} onUpdateDataset={updateStoredDataset} onDeleteDataset={removeStoredDataset} onClear={clear} onExportConfig={exportConfig} onImportConfig={importConfig} onConfigureWps={()=>setFirstRunOpen(true)} onPersonalImport={file => handlePersonalWpsImport(file, dataset.meta.sourceMode === 'personal-wps' && personalFileMatchesDataset(file, dataset) ? datasetId(dataset) : undefined)} onExportAiText={exportAiText} onCopyAiText={copyAiText} onExportPoster={()=>setPosterOpen(true)}/>}
+      {view==='about'&&<AboutView/>}
       </div>
     </main>
     <ImportDialog open={importOpen} onClose={()=>setImportOpen(false)} onImported={handleImported}/>

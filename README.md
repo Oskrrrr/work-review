@@ -54,7 +54,18 @@
 
 ### Windows 客户端
 
-从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.8.0-windows-x64-setup.exe`。
+从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-1.0.0-windows-x64-setup.exe`。
+
+### 1.0.0 正式版更新（相比 0.8.0）
+
+- 长期工作前台新增“跨年度长期事项”列表展开/收起，默认展开；用户收起后的状态会保存到本地，下次进入继续保持。
+- AI 年度报告素材导出重新整理为固定六个章节：数据概览、长期工作项目、已确认事项与阶段性工作、未串联的单项工作、完整工作时间线、给 AI 的写作提示。
+- 没有长期项目、只有阶段性事项、同时存在长期/阶段性/单项记录以及空数据集时，Markdown 文字稿都会保持完整结构，不再漏掉工作记录，也不会把所有事项错误称为长期项目。
+- 新增“软件信息”页面，展示版本、发布者、核心功能、本地优先与隐私说明，以及 GitHub 项目入口。
+- 使用新的“工作脉络” Windows 应用图标，并同步更新桌面应用、安装包、快捷方式、网页 favicon 和 PWA 图标。
+- 修复 Electron `file://` 环境下应用图标路径错误导致的破损图片占位符；修复软件信息页版本变量未替换导致页面空白的问题。
+- 安装包元数据统一使用发布者 `Oskrrrr`，配置 Windows 代码签名入口和标准安装包命名；正式签名需要提供受 Windows 信任的 Authenticode 证书。
+- 补充 Windows 签名说明、图标资源和对应构建验证；不改变原始 Excel、WPS 云文件和本地配置备份的隐私边界。
 
 ### 0.8.0 更新
 
@@ -89,6 +100,8 @@
 2. 跳过 WPS 登录，直接导入本地 Excel。
 
 Windows 安装包会在构建时从官方来源获取并内置固定版本的 `kdocs-cli`，普通用户不需要再手动安装。开发者从源码打包时，`scripts/fetch-kdocs-cli.cjs` 会自动下载并校验组件。个人 WPS 登录仍由 `kdocs-cli` 的官方登录流程完成。组件来源和版本说明见 [docs/第三方组件.md](docs/第三方组件.md) 以及官方项目：[kdocs-app/kdocs-skill](https://github.com/kdocs-app/kdocs-skill)。
+
+安装包使用 Oskrrrr 作为发布者元数据，并配置了正式 Windows 代码签名入口。要彻底消除其他电脑上的“未知发布者”提示，需要使用受 Windows 信任的 Authenticode 证书构建；具体步骤见 [docs/Windows代码签名.md](docs/Windows代码签名.md)。
 
 如果所在网络无法下载官方组件，仍然可以跳过 WPS 登录，直接导入本地 Excel 工作簿。
 

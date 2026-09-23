@@ -19,10 +19,59 @@ describe('buildAiWorklogMarkdown', () => {
     expect(output).toContain('W-000001｜社区走访项目');
     expect(output).toContain('基层治理-走访');
     expect(output).toContain('持续 8 天');
-    expect(output).toContain('## 三、未串联的单项工作');
+    expect(output).toContain('## 四、未串联的单项工作');
     expect(output).toContain('临时会议');
-    expect(output).toContain('## 四、完整工作时间线');
+    expect(output).toContain('## 五、完整工作时间线');
     expect(output).toContain('图片记录 1 张');
   });
-});
 
+  it('keeps periodic and standalone work when there are no long-term projects', () => {
+    const periodicDataset: WorkDataset = {
+      ...dataset,
+      cases: [{ id: 'W-000002', title: '阶段性检查', recordIds: ['r1', 'r2'], status: 'confirmed', kind: 'periodic', createdAt: '' }],
+    };
+    const output = buildAiWorklogMarkdown(periodicDataset);
+
+    expect(output).toContain('当前没有已确认的长期工作项目');
+    expect(output).toContain('## 三、已确认事项与阶段性工作');
+    expect(output).toContain('W-000002｜阶段性检查');
+    expect(output).toContain('## 四、未串联的单项工作');
+    expect(output).toContain('临时会议');
+    expect(output).toContain('## 五、完整工作时间线');
+    expect(output.match(/\*\*走访准备\*\*/g)).toHaveLength(2);
+  });
+
+  it('exports a complete section structure for an empty dataset', () => {
+    const emptyDataset: WorkDataset = {
+      meta: { sourceName: '空白.xlsx', sheetName: 'Sheet1', year: 2026, importedAt: '', sourceMode: 'local', imageCount: 0, warnings: [] },
+      cases: [],
+      records: [],
+    };
+    const output = buildAiWorklogMarkdown(emptyDataset);
+
+    expect(output).toContain('## 一、数据概览');
+    expect(output).toContain('## 二、长期工作项目');
+    expect(output).toContain('## 三、已确认事项与阶段性工作');
+    expect(output).toContain('## 四、未串联的单项工作');
+    expect(output).toContain('## 五、完整工作时间线');
+    expect(output).toContain('## 六、给 AI 的写作提示');
+    expect(output).toContain('暂无工作记录');
+  });
+
+  it('separates long-term, periodic, and standalone records without dropping any timeline entry', () => {
+    const mixedDataset: WorkDataset = {
+      ...dataset,
+      cases: [
+        dataset.cases[0],
+        { id: 'W-000002', title: '阶段性检查', recordIds: ['r3'], status: 'confirmed', kind: 'periodic', createdAt: '' },
+      ],
+    };
+    const output = buildAiWorklogMarkdown(mixedDataset);
+
+    expect(output).toContain('W-000001｜社区走访项目');
+    expect(output).toContain('W-000002｜阶段性检查');
+    expect(output).toContain('所有记录都已归入事项编号。');
+    expect(output.match(/\*\*临时会议\*\*/g)).toHaveLength(2);
+    expect(output.match(/\*\*走访准备\*\*/g)).toHaveLength(2);
+  });
+});
