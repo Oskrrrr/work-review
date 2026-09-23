@@ -136,6 +136,33 @@ ipcMain.handle('kdocs-status', kdocsStatus);
 ipcMain.handle('kdocs-login', kdocsLogin);
 ipcMain.handle('kdocs-search', kdocsSearch);
 ipcMain.handle('kdocs-download', kdocsDownload);
+function safePosterFileName(value) {
+  const normalized = String(value || '工作脉络-年度总结海报.png').replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim();
+  return normalized.toLowerCase().endsWith('.png') ? normalized : `${normalized}.png`;
+}
+
+async function savePoster(_event, payload) {
+  const dataUrl = String(payload?.dataUrl || '');
+  const match = dataUrl.match(/^data:image\/png;base64,([A-Za-z0-9+/=]+)$/);
+  if (!match) throw new Error('海报图片数据无效。');
+  const fileName = safePosterFileName(payload?.fileName);
+  const roots = [];
+  if (!app.isPackaged) roots.push(path.join(app.getAppPath(), '工作脉络海报'));
+  try { roots.push(path.join(path.dirname(app.getPath('exe')), '工作脉络海报')); } catch { /* app path unavailable during startup */ }
+  roots.push(path.join(app.getPath('documents'), '工作脉络海报'));
+  const buffer = Buffer.from(match[1], 'base64');
+  for (const directory of roots) {
+    try {
+      await fs.promises.mkdir(directory, { recursive: true });
+      const target = path.join(directory, fileName);
+      await fs.promises.writeFile(target, buffer);
+      return { path: target, directory, fileName };
+    } catch { /* try the next writable location */ }
+  }
+  throw new Error('无法创建海报文件夹，请检查应用目录或用户文档目录的写入权限。');
+}
+
+ipcMain.handle('save-poster', savePoster);
 ipcMain.handle('open-external', (_event, url) => {
   if (/^https:\/\/(github\.com|open\.wps\.cn)(\/|$)/i.test(String(url))) return shell.openExternal(String(url));
   throw new Error('不允许打开此外部地址。');

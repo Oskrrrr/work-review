@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld('workReviewDesktop', {
   personalWpsLogin: () => ipcRenderer.invoke('kdocs-login'),
   personalWpsSearch: (keyword) => ipcRenderer.invoke('kdocs-search', keyword),
   personalWpsDownload: (file) => ipcRenderer.invoke('kdocs-download', file),
+  savePoster: (payload) => ipcRenderer.invoke('save-poster', payload),
   openExternal: (url) => ipcRenderer.invoke('open-external', url)
 });

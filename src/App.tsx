@@ -2,6 +2,7 @@ import { CalendarDays, Clock3, Cloud, Eye, EyeOff, FileSpreadsheet, FolderKanban
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ImportDialog } from './components/ImportDialog';
 import { FirstRunDialog } from './components/FirstRunDialog';
+import { PosterExportDialog } from './components/PosterExportDialog';
 import { acceptSuggestion, buildCaseSuggestions, renumberCases, type CaseSuggestion } from './lib/cases';
 import { clearLocalData, deleteDataset, loadDataset, loadDatasets, saveDataset, saveImages } from './lib/storage';
 import { getCloudDataset, getCloudSettings, hasCloudApi, saveCloudCases, saveCloudSettings, WPS_AUTH_PENDING_KEY, type UserSettings, triggerCloudSync, downloadPersonalWpsFile, type PersonalWpsFile, loginPersonalWps } from './lib/api';
@@ -94,6 +95,7 @@ function App() {
   const [view,setView] = useState<ViewName>('overview');
   const [selectedDate,setSelectedDate] = useState(newestDate(demoDataset));
   const [importOpen,setImportOpen] = useState(false);
+  const [posterOpen,setPosterOpen] = useState(false);
   const [firstRunOpen,setFirstRunOpen] = useState(false);
   const [hydrated,setHydrated] = useState(false);
   const [search,setSearch] = useState('');
@@ -213,9 +215,10 @@ function App() {
       {view==='custom-association'&&<CustomAssociationView dataset={dataset} onChange={applyDataset}/>} 
       {view==='cases'&&<CasesView dataset={dataset} onChange={applyDataset}/>} 
       {view==='suggestions'&&<SuggestionsView suggestions={suggestions} onAccept={accept} onReject={reject}/>} 
-      {view==='settings'&&<SettingsView dataset={dataset} datasets={datasets} onImport={()=>setImportOpen(true)} onUpdateDataset={updateStoredDataset} onDeleteDataset={removeStoredDataset} onClear={clear} onExportConfig={exportConfig} onImportConfig={importConfig} onConfigureWps={()=>setFirstRunOpen(true)} onPersonalImport={handlePersonalWpsImport} onExportAiText={exportAiText} onCopyAiText={copyAiText}/>}
+      {view==='settings'&&<SettingsView dataset={dataset} datasets={datasets} onImport={()=>setImportOpen(true)} onUpdateDataset={updateStoredDataset} onDeleteDataset={removeStoredDataset} onClear={clear} onExportConfig={exportConfig} onImportConfig={importConfig} onConfigureWps={()=>setFirstRunOpen(true)} onPersonalImport={handlePersonalWpsImport} onExportAiText={exportAiText} onCopyAiText={copyAiText} onExportPoster={()=>setPosterOpen(true)}/>}
     </main>
     <ImportDialog open={importOpen} onClose={()=>setImportOpen(false)} onImported={handleImported}/>
+    <PosterExportDialog open={posterOpen} dataset={dataset} defaultHideContent={hideContent} onClose={()=>setPosterOpen(false)} onSaved={notify}/>
     <FirstRunDialog open={firstRunOpen} onSkip={()=>setFirstRunOpen(false)} onContinue={()=>setFirstRunOpen(false)} onImport={()=>{ setFirstRunOpen(false); setImportOpen(true); }} onPersonalLogin={async () => { try { const result = await loginPersonalWps(); if (!result.authenticated) throw new Error(result.message || '个人 WPS 登录未完成'); setFirstRunOpen(false); setView('settings'); notify('个人 WPS 已连接，请选择工作记录文件'); } catch (reason) { notify(reason instanceof Error ? reason.message : '个人 WPS 登录失败'); } }}/>
     {imagePreview&&<div className="image-lightbox" onMouseDown={event=>event.target===event.currentTarget&&setImagePreview(undefined)}><figure><button onClick={()=>setImagePreview(undefined)} aria-label="关闭"><X/></button><img src={imagePreview.url} alt={imagePreview.title}/><figcaption>{imagePreview.title}</figcaption></figure></div>}
     <div className={`toast${toast?' show':''}`} aria-live="polite">{toast}</div>

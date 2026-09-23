@@ -1,17 +1,17 @@
-import { CalendarDays, Cloud, Copy, Database, Download, FileSpreadsheet, FileText, LogIn, RefreshCw, Save, Search, Trash2, Upload } from 'lucide-react';
+import { CalendarDays, Cloud, Copy, Database, Download, FileSpreadsheet, FileText, ImagePlus, LogIn, RefreshCw, Save, Search, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getPersonalWpsStatus, loginPersonalWps, searchPersonalWpsFiles, type PersonalWpsFile } from '../lib/api';
 import type { WorkDataset } from '../types';
 
 const FILE_CONFIG_KEY = 'work-review-personal-wps-file';
 
-export function SettingsView({ dataset, datasets, onImport, onUpdateDataset, onDeleteDataset, onClear, onExportConfig, onImportConfig, onConfigureWps, onPersonalImport, onExportAiText, onCopyAiText }: { dataset: WorkDataset; datasets: WorkDataset[]; onImport: () => void; onUpdateDataset: (id: string, changes: { displayName: string; year: number }) => void; onDeleteDataset: (id: string) => Promise<void>; onClear: () => void; onExportConfig: () => void; onImportConfig: (file: File) => void; onConfigureWps: () => void; onPersonalImport: (file: PersonalWpsFile) => Promise<void>; onExportAiText: () => void; onCopyAiText: () => void }) {
+export function SettingsView({ dataset, datasets, onImport, onUpdateDataset, onDeleteDataset, onClear, onExportConfig, onImportConfig, onConfigureWps, onPersonalImport, onExportAiText, onCopyAiText, onExportPoster }: { dataset: WorkDataset; datasets: WorkDataset[]; onImport: () => void; onUpdateDataset: (id: string, changes: { displayName: string; year: number }) => void; onDeleteDataset: (id: string) => Promise<void>; onClear: () => void; onExportConfig: () => void; onImportConfig: (file: File) => void; onConfigureWps: () => void; onPersonalImport: (file: PersonalWpsFile) => Promise<void>; onExportAiText: () => void; onCopyAiText: () => void; onExportPoster: () => void }) {
   return <section className="workspace-view">
     <div className="view-heading"><div><h2>数据与同步</h2><p>管理已导入的数据表，连接个人 WPS，或随时导入新的本地 Excel。</p></div></div>
     <div className="settings-dashboard">
       <DatasetLibrary dataset={dataset} datasets={datasets} onImport={onImport} onUpdate={onUpdateDataset} onDelete={onDeleteDataset}/>
       <PersonalWpsPicker onConfigure={onConfigureWps} onImport={onPersonalImport}/>
-      <article className="panel setting-card ai-export-card"><FileStatus icon={<FileText/>} title="AI 年度报告素材" value="文字版 · Markdown"/><p className="setting-note">把年度概览、类别、长期工作项目、未串联事项和完整时间线整理成一份适合交给 AI 的文字稿，不包含图片文件本身。</p><div className="config-backup-actions"><button className="primary-action" onClick={onExportAiText}><Download size={15}/>导出文字稿（.md）</button><button className="secondary-action" onClick={onCopyAiText}><Copy size={15}/>复制到剪贴板</button></div></article>
+      <article className="panel setting-card ai-export-card"><FileStatus icon={<FileText/>} title="AI 年度报告素材" value="文字版 · Markdown"/><p className="setting-note">把年度概览、类别、长期工作项目、未串联事项和完整时间线整理成一份适合交给 AI 的文字稿，不包含图片文件本身。</p><div className="config-backup-actions"><button className="primary-action" onClick={onExportAiText}><Download size={15}/>导出文字稿（.md）</button><button className="secondary-action" onClick={onCopyAiText}><Copy size={15}/>复制到剪贴板</button><button className="secondary-action" onClick={onExportPoster}><ImagePlus size={15}/>生成年度海报</button></div></article>
       <article className="panel setting-card config-backup-card"><FileStatus icon={<Download/>} title="个人配置备份" value="可离线迁移"/><p className="setting-note">只保存事项编号、自定义关联、自定义大类和排除词，不包含原始工作记录和图片。</p><div className="config-backup-actions"><button className="secondary-action" onClick={onExportConfig}><Download size={15}/>保存配置到本地</button><label className="secondary-action"><Upload size={15}/>导入本地配置<input type="file" accept="application/json,.json" onChange={event => { const file = event.target.files?.[0]; if (file) onImportConfig(file); event.currentTarget.value = ''; }}/></label></div></article>
     </div>
     <button className="danger-link" onClick={onClear}>清除当前客户端中的全部工作记录和图片</button>

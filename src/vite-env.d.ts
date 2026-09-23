@@ -10,6 +10,7 @@ interface Window {
     personalWpsLogin?: () => Promise<{ available: boolean; authenticated: boolean; message?: string }>;
     personalWpsSearch?: (keyword?: string) => Promise<{ files: Array<{ id: string; driveId?: string; parentId?: string; name: string; size?: number; modifiedAt?: string; type?: string }> }>;
     personalWpsDownload?: (file: { id: string; driveId?: string; name?: string }) => Promise<{ name: string; bytes: Uint8Array }>;
+    savePoster?: (payload: { fileName: string; dataUrl: string }) => Promise<{ path: string; directory: string; fileName: string }>;
     openExternal?: (url: string) => Promise<void>;
   };
 }
