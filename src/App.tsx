@@ -7,7 +7,7 @@ import { acceptSuggestion, buildCaseSuggestions, renumberCases, type CaseSuggest
 import { clearLocalData, deleteDataset, loadDataset, loadDatasets, saveDataset, saveImages } from './lib/storage';
 import { getCloudDataset, getCloudSettings, hasCloudApi, saveCloudCases, saveCloudSettings, WPS_AUTH_PENDING_KEY, PERSONAL_WPS_FILE_KEY, type UserSettings, triggerCloudSync, downloadPersonalWpsFile, type PersonalWpsFile, loginPersonalWps } from './lib/api';
 import { demoDataset } from './demo';
-import type { WorkDataset } from './types';
+import type { LongTermProject, WorkDataset } from './types';
 import { importWorkbook, inferYearFromFileName, personalDatasetId, type ImportResult } from './lib/workbook';
 import { OverviewView } from './views/OverviewView';
 import { TimelineView } from './views/TimelineView';
@@ -60,6 +60,7 @@ function sortDatasets(items: WorkDataset[]) {
 }
 
 const PERSONAL_WPS_FILE_MAP_KEY = 'work-review-personal-wps-files';
+const LONG_TERM_PROJECTS_KEY = 'work-review-long-term-projects';
 
 function personalWpsFileMap() {
   try { return JSON.parse(localStorage.getItem(PERSONAL_WPS_FILE_MAP_KEY) || '{}') as Record<string, PersonalWpsFile>; }
@@ -97,6 +98,10 @@ function configuredPersonalWpsFile(item: WorkDataset) {
     const saved = JSON.parse(localStorage.getItem(PERSONAL_WPS_FILE_KEY) || 'null') as PersonalWpsFile | null;
     return personalFileMatchesDataset(saved ?? undefined, item) ? saved ?? undefined : undefined;
   } catch { return undefined; }
+}
+
+function loadLongTermProjects() {
+  try { return JSON.parse(localStorage.getItem(LONG_TERM_PROJECTS_KEY) || '[]') as LongTermProject[]; } catch { return []; }
 }
 
 // WPS 同步只更新原始记录；本机保存的人工关联不能被远端数据覆盖。
@@ -169,6 +174,7 @@ function App() {
   const [toast,setToast] = useState('');
   const [rejectedSuggestions,setRejectedSuggestions] = useState<string[]>(() => JSON.parse(localStorage.getItem('rejected-suggestions') || '[]'));
   const [hideContent, setHideContent] = useState(false);
+  const [longTermProjects, setLongTermProjects] = useState<LongTermProject[]>(loadLongTermProjects);
   const toastTimer = useRef<number>();
 
   // 如果上一次授权过程中客户端被关闭，下一次启动时只清理 WPS 的
@@ -188,6 +194,7 @@ function App() {
     setHydrated(true);
   })(); }, []);
   useEffect(() => { if (hydrated && dataset.meta.sourceMode !== 'demo') saveDataset(dataset); }, [dataset,hydrated]);
+  useEffect(() => { localStorage.setItem(LONG_TERM_PROJECTS_KEY, JSON.stringify(longTermProjects)); }, [longTermProjects]);
   const suggestions = useMemo(() => buildCaseSuggestions(dataset.records,rejectedSuggestions,dataset.meta.associationExclusions ?? []),[dataset.records,rejectedSuggestions,dataset.meta.associationExclusions]);
 
   const notify = (message:string) => { setToast(message); window.clearTimeout(toastTimer.current); toastTimer.current=window.setTimeout(()=>setToast(''),2600); };
@@ -224,6 +231,15 @@ function App() {
     }
     forgetPersonalWpsFile(id);
     notify(`已删除数据表“${datasetLabel(target)}”`);
+  };
+  const assignCaseProject = (caseId: string, projectId?: string) => applyDataset({ ...dataset, cases: dataset.cases.map(item => item.id === caseId ? { ...item, longTermProjectId: projectId || undefined } : item) });
+  const createCaseProject = (caseId: string, title: string) => {
+    const normalized = title.trim();
+    if (!normalized) return;
+    const project = { id: `P-${Date.now().toString(36)}`, title: normalized, createdAt: new Date().toISOString() };
+    setLongTermProjects(current => [...current, project]);
+    assignCaseProject(caseId, project.id);
+    notify(`已建立跨年度长期事项“${normalized}”`);
   };
   const handleImported = async (result:ImportResult) => { await saveImages(result.images, datasetId(result.dataset)); applyDataset(result.dataset); setSelectedDate(newestDate(result.dataset)); notify(`已保存 ${result.dataset.meta.year} 年数据：${result.dataset.records.length} 条记录和 ${result.dataset.meta.imageCount} 个图片引用`); };
   const handlePersonalWpsImport = async (file: PersonalWpsFile, targetDatasetId?: string) => {
@@ -263,7 +279,7 @@ function App() {
   const importConfig = async (file: File) => { try { const payload = JSON.parse(await file.text()) as { format?: string; settings?: Partial<UserSettings> }; const settings = payload.settings; if (payload.format !== 'work-review-settings' || !settings || !Array.isArray(settings.cases)) throw new Error('配置文件格式不正确'); const merged = renumberCases(applyCloudSettings(dataset, settings)); applyDataset(merged); notify(`已导入 ${merged.cases.length} 个事项配置`); } catch (error) { notify(error instanceof Error ? error.message : '配置文件读取失败'); } };
   const accept = (suggestion:CaseSuggestion) => { const next=acceptSuggestion(dataset,suggestion); applyDataset(next); notify(`已生成 ${next.cases.at(-1)?.id}`); };
   const reject = (suggestion:CaseSuggestion) => { const next=[...rejectedSuggestions,suggestion.id]; setRejectedSuggestions(next); localStorage.setItem('rejected-suggestions',JSON.stringify(next)); notify('已忽略这条关联建议'); };
-  const clear = async () => { if (!window.confirm('确定清除当前浏览器中的全部年度工作记录和图片吗？原始 Excel 不会受到影响。')) return; await clearLocalData(); setDatasets([]); setDataset(demoDataset); setSelectedDate(newestDate(demoDataset)); notify('本地数据已清除'); };
+  const clear = async () => { if (!window.confirm('确定清除当前浏览器中的全部年度工作记录和图片吗？原始 Excel 不会受到影响。')) return; await clearLocalData(); setLongTermProjects([]); localStorage.removeItem(LONG_TERM_PROJECTS_KEY); setDatasets([]); setDataset(demoDataset); setSelectedDate(newestDate(demoDataset)); notify('本地数据已清除'); };
   const switchDataset = (id:string) => { const target = datasets.find(item => datasetId(item) === id); if (!target) return; setDataset(target); setSelectedDate(newestDate(target)); };
   const selectHeatmapDate = (date: string) => setSelectedDate(current => current === date ? '' : date);
   const openImage = (url:string,title:string) => setImagePreview({url,title});
@@ -293,10 +309,10 @@ function App() {
       {view==='overview'&&<OverviewView dataset={dataset} year={datasetDisplayYear(dataset)} selectedDate={selectedDate} onSelectDate={selectHeatmapDate} onOpenImage={openImage} onNavigate={name=>setView(name as ViewName)} hideContent={hideContent}/>} 
       {view==='timeline'&&<TimelineView dataset={search?{...dataset,records:dataset.records.filter(record=>[record.title,record.caseId,...record.steps.map(step=>step.text)].join(' ').toLowerCase().includes(search.toLowerCase()))}:dataset} onOpenImage={openImage} hideContent={hideContent}/>} 
       {view==='categories'&&<CategoriesView dataset={dataset}/>} 
-      {view==='work-front'&&<WorkFrontView dataset={dataset} onOpenCase={()=>setView('cases')} onChange={applyDataset}/>}
+      {view==='work-front'&&<WorkFrontView dataset={dataset} datasets={datasets} projects={longTermProjects} onOpenCase={()=>setView('cases')} onChange={applyDataset}/>}
       {view==='group-editor'&&<GroupEditorView dataset={dataset} onChange={applyDataset}/>} 
       {view==='custom-association'&&<CustomAssociationView dataset={dataset} onChange={applyDataset}/>} 
-      {view==='cases'&&<CasesView dataset={dataset} onChange={applyDataset}/>} 
+      {view==='cases'&&<CasesView dataset={dataset} projects={longTermProjects} onAssignProject={assignCaseProject} onCreateProject={createCaseProject} onChange={applyDataset}/>}
       {view==='suggestions'&&<SuggestionsView suggestions={suggestions} onAccept={accept} onReject={reject}/>} 
       {view==='settings'&&<SettingsView dataset={dataset} datasets={datasets} onImport={()=>setImportOpen(true)} onUpdateDataset={updateStoredDataset} onDeleteDataset={removeStoredDataset} onClear={clear} onExportConfig={exportConfig} onImportConfig={importConfig} onConfigureWps={()=>setFirstRunOpen(true)} onPersonalImport={file => handlePersonalWpsImport(file, dataset.meta.sourceMode === 'personal-wps' && personalFileMatchesDataset(file, dataset) ? datasetId(dataset) : undefined)} onExportAiText={exportAiText} onCopyAiText={copyAiText} onExportPoster={()=>setPosterOpen(true)}/>}
     </main>

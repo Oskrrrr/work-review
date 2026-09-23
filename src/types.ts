@@ -36,6 +36,13 @@ export interface CaseItem {
   /** A completed item remains in history and can be reopened later. */
   lifecycle?: CaseLifecycle;
   completedAt?: string;
+  longTermProjectId?: string;
+  createdAt: string;
+}
+
+export interface LongTermProject {
+  id: string;
+  title: string;
   createdAt: string;
 }
 

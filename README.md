@@ -54,7 +54,11 @@
 
 ### Windows 客户端
 
-从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.5.0-windows-x64-setup.exe`。
+从 [Releases](https://github.com/Oskrrrr/work-review/releases) 下载标准命名的 `work-review-*-windows-x64-setup.exe`，安装后即可使用。当前版本为 `work-review-0.6.0-windows-x64-setup.exe`。
+
+### 跨年度长期事项
+
+在“事项编号总表”中将事项标记为“长期事项”，即可在“跨年度事项”列选择已有主档或新建主档。下一年度导入同一项目产生的新事项后，选择相同主档，长期工作前台会显示“始于”年份、覆盖年份以及累计记录数；年度概览仍只统计当前选择的年度，不会把跨年度数据重复计入。
 
 首次使用有两种方式：
 
