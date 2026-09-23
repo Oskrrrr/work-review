@@ -23,7 +23,7 @@ main { min-width:0; padding:26px 30px 38px; }
 .topbar p { margin:0 0 4px; font-size:13px; color:var(--muted); }
 h1 { margin:0; font-size:27px; letter-spacing:-.04em; }
 .top-actions { display:flex; gap:9px; align-items:center; }
-.privacy-toggle { height:38px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--muted); padding:0 11px; display:flex; align-items:center; gap:6px; font-size:12px; }
+.privacy-toggle { width:38px; height:38px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--muted); padding:0; display:flex; align-items:center; justify-content:center; }
 .privacy-toggle:hover,.privacy-toggle.active { color:var(--green); border-color:#b9d7c4; background:var(--green-soft); }
 .dataset-switcher { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:11px; }
 .dataset-switcher select { height:38px; max-width:180px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); padding:0 8px; font-size:12px; outline:0; }

@@ -1,4 +1,4 @@
-import { CalendarDays, Cloud, Copy, Database, Download, FileText, LogIn, RefreshCw, Save, Search, Trash2, Upload } from 'lucide-react';
+import { CalendarDays, Cloud, Copy, Database, Download, FileSpreadsheet, FileText, LogIn, RefreshCw, Save, Search, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getPersonalWpsStatus, loginPersonalWps, searchPersonalWpsFiles, type PersonalWpsFile } from '../lib/api';
 import type { WorkDataset } from '../types';
@@ -33,7 +33,7 @@ function DatasetLibrary({ dataset, datasets, onImport, onUpdate, onDelete }: { d
     onUpdate(id, { displayName: draft?.name ?? item.meta.sourceName, year });
   };
   return <article className="panel dataset-library-card">
-    <div className="dataset-library-head"><FileStatus icon={<Database/>} title="已同步数据表" value={ordered.length ? `${ordered.length} 个数据集，按年份排序` : '尚未导入工作记录'}/><button className="primary-action" onClick={onImport}><Upload size={15}/>导入本地 Excel</button></div>
+    <div className="dataset-library-head"><FileStatus icon={<Database/>} title="已同步数据表" value={ordered.length ? `${ordered.length} 个数据集，按年份排序` : '尚未导入工作记录'}/><button className="primary-action" onClick={onImport}><FileSpreadsheet size={15}/>导入工作簿</button></div>
     <p className="setting-note">在这里整理每张已导入的表。修改“显示名称”只影响年度概览中的下拉名称；删除只移除当前客户端的数据，不会删除原始 Excel 或 WPS 云文件。</p>
     {ordered.length ? <div className="dataset-library-list">{ordered.map(item => { const id = idOf(item); const draft = drafts[id] ?? { name: item.meta.displayName || item.meta.sourceName, year: String(item.meta.year) }; const active = id === idOf(dataset); return <article className={`dataset-library-item${active ? ' active' : ''}`} key={id}>
       <div className="dataset-item-summary"><span className="dataset-year-badge"><CalendarDays size={14}/>{item.meta.year}</span><div><strong>{item.meta.displayName || item.meta.sourceName}</strong><small>{active ? '当前正在查看' : '已同步'} · {item.meta.sheetName} · {item.records.length} 条记录</small></div></div>
